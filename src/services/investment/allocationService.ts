@@ -13,6 +13,7 @@
  * - Current Deployed Notional: live positions tracked in deployed_notional_usd
  * - Deployable from Reserve: totalReserveValueUsd * DEPLOYABLE_FRACTION
  */
+import { Prisma } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { prisma } from "../../config/database";
 import { reserveTracker, ReserveTracker } from "../reserve/ReserveTracker";
@@ -165,7 +166,7 @@ export async function allocateToStrategy(
   }
 
   // Use transaction to ensure atomicity
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const strategy = await tx.investmentStrategy.findUnique({
       where: { id: strategyId },
     });
@@ -218,7 +219,7 @@ export async function deallocateFromStrategy(
     throw new Error("Deallocation amount must be positive");
   }
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const strategy = await tx.investmentStrategy.findUnique({
       where: { id: strategyId },
     });

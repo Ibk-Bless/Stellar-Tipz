@@ -25,6 +25,7 @@ model Organization {
   users           User[]           @relation("UserOrganization")
   salaryBatches   SalaryBatch[]
   salarySchedules SalarySchedule[]
+  bulkTransferJobs BulkTransferJob[]
   transactions    Transaction[]    @relation("OrganizationTransactions")
 
   @@index([kycStatus], name: "idx_organization_kyc_status")
@@ -82,6 +83,7 @@ model Transaction {
   id               String           @id @default(uuid()) @db.Uuid
   userId           String?          @map("user_id") @db.Uuid
   organizationId   String?          @map("organization_id") @db.Uuid
+  idempotencyKey   String?          @unique(map: "idx_transactions_idempotency_key") @map("idempotency_key") @db.VarChar(255)
   type             String           @db.VarChar(20)
   status           String           @default("pending") @db.VarChar(20)
   usdcAmount       Decimal?         @map("usdc_amount") @db.Decimal(20, 8)
@@ -250,6 +252,10 @@ model AuditTrail {
   oldValue    Json?    @map("old_value")
   newValue    Json?    @map("new_value")
   performedBy String?  @map("performed_by") @db.Uuid
+  actorType   String?  @map("actor_type") @db.VarChar(20)
+  keyType     String?  @map("key_type") @db.VarChar(32)
+  organizationId String? @map("organization_id") @db.Uuid
+  reason      String?  @db.VarChar(255)
   timestamp   DateTime @default(now()) @db.Timestamp(6)
 
   @@index([eventType], map: "idx_audit_trail_event_type")
@@ -328,6 +334,10 @@ model ApiKey {
   organizationId String?   @map("organization_id") @db.Uuid
   lookupKey      String?   @unique @map("lookup_key") @db.VarChar(24)
   keyHash        String    @unique @map("key_hash") @db.VarChar(255)
+  keyType        ApiKeyType @default(USER_KEY) @map("key_type")
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  emergencyReason String?  @map("emergency_reason") @db.VarChar(255)
+  emergencyExpiresAt DateTime? @map("emergency_expires_at") @db.Timestamp(6)
   permissions    Json? // segment scopes: e.g. ["p2p:read", "p2p:write", "sme:write", "gateway:write"]
   rateLimit      Int       @default(100) @map("rate_limit")
   lastUsedAt     DateTime? @map("last_used_at") @db.Timestamp(6)
@@ -340,6 +350,7 @@ model ApiKey {
 
   @@index([userId], name: "idx_api_keys_user_id")
   @@index([organizationId], name: "idx_api_keys_organization_id")
+  @@index([keyType], name: "idx_api_keys_key_type")
   @@index([keyHash], name: "idx_api_keys_key_hash")
   @@map("api_keys")
 }
@@ -356,6 +367,28 @@ model UserPasskey {
 
   @@index([userId], map: "idx_user_passkey_user_id")
   @@map("user_passkeys")
+}
+
+model UserDevice {
+  id                   String   @id @default(uuid()) @db.Uuid
+  userId               String   @map("user_id") @db.Uuid
+  fingerprint          String   @db.VarChar(64)
+  userAgent            String?  @map("user_agent") @db.VarChar(512)
+  lastIp               String?  @map("last_ip") @db.VarChar(45)
+  isTrusted            Boolean  @default(false) @map("is_trusted")
+  verificationAttempts Int      @default(0) @map("verification_attempts")
+  trustedAt            DateTime? @map("trusted_at") @db.Timestamp(6)
+  lastSeenAt           DateTime @default(now()) @map("last_seen_at") @db.Timestamp(6)
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint], map: "user_devices_user_id_fingerprint_key")
+  @@index([userId], map: "idx_user_devices_user_id")
+  @@index([fingerprint], map: "idx_user_devices_fingerprint")
+  @@index([lastSeenAt], map: "idx_user_devices_last_seen_at")
+  @@map("user_devices")
 }
 
 model Guardian {
@@ -447,6 +480,8 @@ model KycDocument {
   storageRef    String   @map("storage_ref") @db.VarChar(512)
   checksum      String?  @db.VarChar(64)
   mimeType      String?  @map("mime_type") @db.VarChar(100)
+  scanStatus    String   @default("pending") @map("scan_status") @db.VarChar(20)
+  fileSizeBytes Int?     @map("file_size_bytes")
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp(6)
 
   application KycApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
@@ -530,6 +565,67 @@ model SalaryBatch {
   @@index([userId], map: "idx_salary_batch_user_id")
   @@index([status], map: "idx_salary_batch_status")
   @@map("salary_batches")
+}
+
+model SalaryItem {
+  id               String      @id @default(uuid()) @db.Uuid
+  batchId          String      @map("batch_id") @db.Uuid
+  recipientId      String?     @map("recipient_id") @db.Uuid
+  recipientAddress String      @map("recipient_address") @db.VarChar(56)
+  amount           Decimal     @db.Decimal(20, 8)
+  status           String      @default("pending") @db.VarChar(20)
+  transactionId    String?     @unique @map("transaction_id") @db.Uuid
+  errorMessage     String?     @map("error_message") @db.Text
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt        DateTime    @updatedAt @map("updated_at") @db.Timestamp(6)
+  batch            SalaryBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  transaction      Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([batchId], map: "idx_salary_item_batch_id")
+  @@index([status], map: "idx_salary_item_status")
+  @@map("salary_items")
+}
+
+model SalarySchedule {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String?       @map("organization_id") @db.Uuid
+  userId         String        @map("user_id") @db.Uuid
+  name           String        @db.VarChar(100)
+  cron           String        @db.VarChar(100)
+  amountConfig   Json          @map("amount_config") @db.JsonB
+  currency       String        @default("ACBU") @db.VarChar(10)
+  status         String        @default("active") @db.VarChar(20)
+  lastRunAt      DateTime?     @map("last_run_at") @db.Timestamp(6)
+  nextRunAt      DateTime?     @map("next_run_at") @db.Timestamp(6)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamp(6)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user           User          @relation(fields: [userId], references: [id])
+
+  @@index([organizationId], map: "idx_salary_schedule_org_id")
+  @@index([status], map: "idx_salary_schedule_status")
+  @@index([nextRunAt], map: "idx_salary_schedule_next_run")
+  @@map("salary_schedules")
+}
+
+model BulkTransferJob {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  status         String        @default("pending") @db.VarChar(20)
+  totalRows      Int           @map("total_rows")
+  processedRows  Int           @default(0) @map("processed_rows")
+  successCount   Int           @default(0) @map("success_count")
+  failureCount   Int           @default(0) @map("failure_count")
+  failureReport  Json?         @map("failure_report")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  completedAt    DateTime?     @map("completed_at") @db.Timestamp(6)
+  errorMessage   String?       @map("error_message") @db.Text
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "idx_bulk_transfer_jobs_organization_id")
+  @@index([status], map: "idx_bulk_transfer_jobs_status")
+  @@index([createdAt], map: "idx_bulk_transfer_jobs_created_at")
+  @@map("bulk_transfer_jobs")
 }
 
 model RecoveryAttempt {

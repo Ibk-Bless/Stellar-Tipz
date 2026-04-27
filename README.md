@@ -244,14 +244,15 @@ livenessProbe:
 ## CI/CD
 
 GitHub Actions CI pipeline runs on:
-- Push to `main` or `develop` branches
-- Pull requests to `main` or `develop`
+- Push to `main`, `dev`, or `develop` branches
+- Pull requests to `main`, `dev`, or `develop`
 
 The CI pipeline:
 - Runs linter and formatter checks
 - Runs all tests
 - Builds the project
 - Validates database migrations
+- Blocks destructive Prisma migrations unless the pull request carries the `allow-destructive-migration` label
 
 ## Contributing
 

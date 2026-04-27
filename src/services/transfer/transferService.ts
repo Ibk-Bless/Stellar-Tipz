@@ -13,8 +13,9 @@ import { prisma } from "../../config/database";
 import { stellarClient } from "../stellar/client";
 import { getBaseFee } from "../stellar/feeManager";
 import { resolveRecipientToStellarAddress } from "../recipient/recipientResolver";
+import crypto from "crypto";
 
-import { logger } from "../../config/logger";
+import { logger, logFinancialEvent } from "../../config/logger";
 import type {
   CreateTransferParams,
   CreateTransferOptions,

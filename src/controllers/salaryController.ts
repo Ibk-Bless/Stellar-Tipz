@@ -57,11 +57,12 @@ export async function postSalaryDisburse(
     });
   } catch (e) {
     if (e instanceof z.ZodError) {
-      throw new AppError("Validation error", 400, "VALIDATION_ERROR", e.flatten());
+      return next(
+        new AppError("Validation error", 400, "VALIDATION_ERROR", e.flatten()),
+      );
     }
     next(e);
   }
-
 }
 
 /**
@@ -149,11 +150,12 @@ export async function postSalarySchedule(
     });
   } catch (e) {
     if (e instanceof z.ZodError) {
-      throw new AppError("Validation error", 400, "VALIDATION_ERROR", e.flatten());
+      return next(
+        new AppError("Validation error", 400, "VALIDATION_ERROR", e.flatten()),
+      );
     }
     next(e);
   }
-
 }
 
 /**

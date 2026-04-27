@@ -31,8 +31,6 @@ import {
 } from "../utils/decimalUtils";
 
 const MINT_FEE_BPS = 30; // 0.3%
-// DECIMALS_7 is kept for reference but replaced by decimalToContractNumber
-const DECIMALS_7 = 1e7;
 
 export const usdcBodySchema = z.object({
   usdc_amount: z

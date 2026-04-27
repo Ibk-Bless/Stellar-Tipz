@@ -50,10 +50,9 @@ export const config = {
   mongodbUri: env.MONGODB_URI,
   rabbitmqUrl: env.RABBITMQ_URL,
   jwtSecret: env.JWT_SECRET,
-  challengeTokenSecret: process.env.CHALLENGE_TOKEN_SECRET || 'default_secret',
+  challengeTokenSecret: env.CHALLENGE_TOKEN_SECRET || env.JWT_SECRET,
   jwtExpiresIn: env.JWT_EXPIRES_IN,
   jwtClockToleranceSeconds: env.JWT_CLOCK_TOLERANCE_SECONDS,
-  challengeTokenSecret: env.CHALLENGE_TOKEN_SECRET || env.JWT_SECRET,
   apiKeySalt: env.API_KEY_SALT,
   adminApiKey: env.ADMIN_API_KEY,
   rateLimitWindowMs: env.RATE_LIMIT_WINDOW_MS,
@@ -102,6 +101,30 @@ export const config = {
     targetEnvironment:
       (process.env.MTN_MOMO_TARGET_ENVIRONMENT as "sandbox" | "production") ||
       "sandbox",
+  },
+  s3: {
+    region: process.env.AWS_REGION || process.env.S3_REGION || "us-east-1",
+    bucket: process.env.S3_BUCKET || "",
+    endpoint: process.env.S3_ENDPOINT || "",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID || "",
+    secretAccessKey:
+      process.env.AWS_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY || "",
+    uploadUrlTtlSeconds: parseInt(
+      process.env.S3_UPLOAD_URL_TTL_SECONDS || "900",
+      10,
+    ),
+    downloadUrlTtlSeconds: parseInt(
+      process.env.S3_DOWNLOAD_URL_TTL_SECONDS || "300",
+      10,
+    ),
+    scanWebhookSecret: process.env.S3_SCAN_WEBHOOK_SECRET || "",
+  },
+  bulkTransfer: {
+    chunkSize: parseInt(process.env.BULK_TRANSFER_CHUNK_SIZE || "100", 10),
+    maxFileSizeBytes: parseInt(
+      process.env.BULK_TRANSFER_MAX_FILE_SIZE_BYTES || "10485760",
+      10,
+    ),
   },
   fintech: {
     currencyProviders: ((): Record<string, string> => {

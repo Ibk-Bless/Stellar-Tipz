@@ -2,9 +2,9 @@ import { swaggerSpec } from "../src/config/swagger";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { routeSchemas } from "../src/controllers/schemas";
 
-
 describe("OpenAPI Drift vs Implementation", () => {
   const paths = (swaggerSpec as any).paths || {};
+  const schemaRegistry = routeSchemas as Record<string, any>;
   const errors: string[] = [];
 
   // Helper to normalize path for comparison
@@ -14,7 +14,7 @@ describe("OpenAPI Drift vs Implementation", () => {
    * CHECK 1: Every route in routeSchemas must be documented in Swagger
    */
   it("should ensure all registered route schemas are documented in OpenAPI", () => {
-    for (const routeKey of Object.keys(routeSchemas)) {
+    for (const routeKey of Object.keys(schemaRegistry)) {
       const [method, path] = routeKey.split(" ");
       const normalizedPath = normalizePath(path);
       
@@ -40,7 +40,7 @@ describe("OpenAPI Drift vs Implementation", () => {
 
       for (const method of Object.keys(methods as any)) {
         const routeKey = `${method.toUpperCase()} ${pathStr}`;
-        if (!routeSchemas[routeKey]) {
+        if (!schemaRegistry[routeKey]) {
           // We don't necessarily fail on this, but it's a good practice to register all routes
           console.warn(`[WARNING] ${routeKey}: Documented in OpenAPI but missing from routeSchemas registry`);
         }
@@ -52,7 +52,7 @@ describe("OpenAPI Drift vs Implementation", () => {
    * CHECK 3: Schema field matching
    */
   it("should ensure OpenAPI documentation and Zod schemas match exactly", () => {
-    for (const [routeKey, zodSchema] of Object.entries(routeSchemas)) {
+    for (const [routeKey, zodSchema] of Object.entries(schemaRegistry)) {
       const [method, path] = routeKey.split(" ");
       const normalizedPath = normalizePath(path);
       const swaggerPath = paths[normalizedPath];
@@ -64,7 +64,7 @@ describe("OpenAPI Drift vs Implementation", () => {
       // Convert Zod schema to JSON schema
       let jsonSchema: any;
       try {
-        jsonSchema = zodToJsonSchema(zodSchema);
+        jsonSchema = zodToJsonSchema(zodSchema as any);
       } catch (e) {
         errors.push(`[ERROR] ${routeKey}: Failed to convert Zod schema to JSON: ${(e as Error).message}`);
         continue;

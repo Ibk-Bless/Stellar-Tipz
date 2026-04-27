@@ -10,6 +10,9 @@
 
 import * as fc from "fast-check";
 
+const finiteDouble = (min: number, max: number) =>
+  fc.double({ min, max, noNaN: true, noDefaultInfinity: true });
+
 const mockCalculateReserveRatio = jest.fn<Promise<number>, [string]>();
 const mockGetReserveStatus = jest.fn<Promise<any>, [string]>();
 
@@ -41,8 +44,8 @@ describe("Property-Based Tests: getBurnFeeBps", () => {
   it("PROPERTY: Fee is always within sanity bounds [1, 500] BPS", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.double({ min: 0.01, max: 200 }), // targetWeight
-        fc.double({ min: 0.01, max: 200 }), // actualWeight
+        finiteDouble(0.01, 200), // targetWeight
+        finiteDouble(0.01, 200), // actualWeight
         async (targetWeight, actualWeight) => {
           mockGetReserveStatus.mockResolvedValueOnce({
             currencies: [
@@ -68,8 +71,8 @@ describe("Property-Based Tests: getBurnFeeBps", () => {
   it("PROPERTY: Fee is one of exactly three valid values [5, 10, 200]", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.double({ min: 0.01, max: 200 }),
-        fc.double({ min: 0.01, max: 200 }),
+        finiteDouble(0.01, 200),
+        finiteDouble(0.01, 200),
         async (targetWeight, actualWeight) => {
           mockGetReserveStatus.mockResolvedValueOnce({
             currencies: [
@@ -94,9 +97,9 @@ describe("Property-Based Tests: getBurnFeeBps", () => {
   it("PROPERTY: Monotonicity - fee decreases as reserve weight increases", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.double({ min: 10, max: 100 }), // targetWeight
-        fc.double({ min: 0.5, max: 2.0 }), // ratio1 (actualWeight/targetWeight)
-        fc.double({ min: 0.5, max: 2.0 }), // ratio2
+        finiteDouble(10, 100), // targetWeight
+        finiteDouble(0.5, 2.0), // ratio1 (actualWeight/targetWeight)
+        finiteDouble(0.5, 2.0), // ratio2
         async (targetWeight, ratio1, ratio2) => {
           const actualWeight1 = targetWeight * ratio1;
           const actualWeight2 = targetWeight * ratio2;
@@ -149,7 +152,7 @@ describe("Property-Based Tests: getBurnFeeBps", () => {
     for (const { pctOfTarget, expectedFee } of testCases) {
       await fc.assert(
         fc.asyncProperty(
-          fc.double({ min: 1, max: 100 }), // targetWeight
+          finiteDouble(1, 100), // targetWeight
           async (targetWeight) => {
             const actualWeight = (targetWeight * pctOfTarget) / 100;
 
@@ -175,8 +178,8 @@ describe("Property-Based Tests: getBurnFeeBps", () => {
   it("PROPERTY: Fee calculation is deterministic for same inputs", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.double({ min: 1, max: 100 }),
-        fc.double({ min: 1, max: 100 }),
+        finiteDouble(1, 100),
+        finiteDouble(1, 100),
         async (targetWeight, actualWeight) => {
           // Call twice with same inputs
           mockGetReserveStatus.mockResolvedValueOnce({
@@ -214,8 +217,8 @@ describe("Property-Based Tests: getBurnFeeBps", () => {
   it("PROPERTY: Total fee never exceeds maximum cap", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.double({ min: 0.01, max: 200 }),
-        fc.double({ min: 0.01, max: 200 }),
+        finiteDouble(0.01, 200),
+        finiteDouble(0.01, 200),
         async (targetWeight, actualWeight) => {
           mockGetReserveStatus.mockResolvedValueOnce({
             currencies: [
@@ -246,7 +249,7 @@ describe("Property-Based Tests: getMintFeeBps", () => {
   it("PROPERTY: Fee is always within sanity bounds [1, 500] BPS", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.double({ min: 0.5, max: 2.0 }), // reserve ratio
+        finiteDouble(0.5, 2.0), // reserve ratio
         async (ratio) => {
           mockCalculateReserveRatio.mockResolvedValueOnce(ratio);
 
@@ -264,7 +267,7 @@ describe("Property-Based Tests: getMintFeeBps", () => {
   it("PROPERTY: Fee is one of exactly two valid values [30, 50]", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.double({ min: 0.5, max: 2.0 }),
+        finiteDouble(0.5, 2.0),
         async (ratio) => {
           mockCalculateReserveRatio.mockResolvedValueOnce(ratio);
 
@@ -281,7 +284,7 @@ describe("Property-Based Tests: getMintFeeBps", () => {
   it("PROPERTY: Fee never exceeds maximum cap of 100 BPS", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.double({ min: 0.1, max: 3.0 }),
+        finiteDouble(0.1, 3.0),
         async (ratio) => {
           mockCalculateReserveRatio.mockResolvedValueOnce(ratio);
 
@@ -298,8 +301,8 @@ describe("Property-Based Tests: getMintFeeBps", () => {
   it("PROPERTY: Monotonicity - fee decreases as reserve ratio increases", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.double({ min: 0.5, max: 2.0 }),
-        fc.double({ min: 0.5, max: 2.0 }),
+        finiteDouble(0.5, 2.0),
+        finiteDouble(0.5, 2.0),
         async (ratio1, ratio2) => {
           mockCalculateReserveRatio.mockResolvedValueOnce(ratio1);
           const fee1 = await getMintFeeBps();
@@ -338,7 +341,7 @@ describe("Property-Based Tests: getMintFeeBps", () => {
   it("PROPERTY: Fee calculation is deterministic for same inputs", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.double({ min: 0.5, max: 2.0 }),
+        finiteDouble(0.5, 2.0),
         async (ratio) => {
           // Call twice with same inputs
           mockCalculateReserveRatio.mockResolvedValueOnce(ratio);

@@ -3,6 +3,7 @@
  * Creates transaction record; invokes burning contract when configured.
  */
 import { Response, NextFunction } from "express";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "../config/database";
 import { getContractAddresses } from "../config/contracts";
@@ -22,10 +23,7 @@ import {
   contractNumberToDecimal,
   calculateFee,
 } from "../utils/decimalUtils";
-import { Prisma } from "@prisma/client";
-
-// DECIMALS_7 is kept for reference but replaced by decimalToContractNumber
-const DECIMALS_7 = 1e7;
+import { AppError } from "../middleware/errorHandler";
 
 /** Best-effort stringify for Decimal-like values in Prisma models. */
 function toNullableStringDecimal(v: unknown): string | null {
@@ -154,24 +152,48 @@ export async function burnAcbu(
       req.apiKey?.organizationId ?? null,
     );
 
-    const tx = await prisma.transaction.create({
-      data: {
-        userId: req.apiKey?.userId ?? undefined,
-        organizationId: req.apiKey?.organizationId ?? undefined,
-        type: "burn",
-        status: "pending",
-        acbuAmountBurned: new Decimal(acbuNum),
-        localCurrency: currency,
-        localAmount: new Decimal(localNum),
-        recipientAccount: recipient_account as object,
-        fee: new Decimal(feeAcbu),
-        rateSnapshot: {
-          acbu_ngn: null,
-          timestamp: new Date().toISOString(),
+    let tx;
+    try {
+      tx = await prisma.transaction.create({
+        data: {
+          userId: req.apiKey?.userId ?? undefined,
+          organizationId: req.apiKey?.organizationId ?? undefined,
+          type: "burn",
+          status: "pending",
+          acbuAmountBurned: new Decimal(acbuNum),
+          localCurrency: currency,
+          localAmount: new Decimal(localDecimal),
+          recipientAccount: recipient_account as object,
+          fee: new Decimal(feeAcbuDecimal),
+          rateSnapshot: {
+            acbu_ngn: null,
+            timestamp: new Date().toISOString(),
+          },
+          blockchainTxHash:
+            burningEnabled && blockchain_tx_hash ? blockchain_tx_hash : undefined,
         },
-        blockchainTxHash: burningEnabled && blockchain_tx_hash ? blockchain_tx_hash : undefined,
-      },
-    });
+      });
+    } catch (createError) {
+      const isDuplicateBurnHash =
+        burningEnabled &&
+        Boolean(blockchain_tx_hash) &&
+        createError instanceof Prisma.PrismaClientKnownRequestError &&
+        createError.code === "P2002";
+
+      if (!isDuplicateBurnHash || !blockchain_tx_hash) {
+        throw createError;
+      }
+
+      const existing = await prisma.transaction.findFirst({
+        where: { type: "burn", blockchainTxHash: blockchain_tx_hash },
+      });
+      if (!existing) {
+        throw createError;
+      }
+
+      respondFromExistingBurnTx(res, existing, blockchain_tx_hash);
+      return;
+    }
 
     await logAudit({
       eventType: "transaction",
