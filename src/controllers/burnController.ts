@@ -5,6 +5,7 @@
 import { Response, NextFunction } from "express";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { Prisma, Transaction } from "@prisma/client";
 import { prisma } from "../config/database";
 import { getContractAddresses } from "../config/contracts";
 import { acbuBurningService } from "../services/contracts";
@@ -39,7 +40,7 @@ function toNullableStringDecimal(v: unknown): string | null {
 /** Formats an idempotent response using the existing burn transaction record. */
 function respondFromExistingBurnTx(
   res: Response,
-  tx: any, // Using any to avoid type issues with Prisma client
+  tx: Transaction,
   blockchainTxHash: string,
 ): void {
   res.status(200).json({
@@ -69,8 +70,8 @@ export const bodySchema = z.object({
     .string()
     .min(1)
     .refine(
-      (s) => /^\d+(\.\d{1,7})?$/.test(s.trim()) && parseFloat(s.trim()) > 0,
-      "must be positive with up to 7 decimal places",
+      (s) => !Number.isNaN(Number(s)) && Number(s) > 0,
+      "must be positive",
     ),
   currency: z.string().length(3).toUpperCase(),
   recipient_account: recipientAccountSchema,
@@ -88,7 +89,10 @@ export async function burnAcbu(
   try {
     const parsed = bodySchema.safeParse(req.body);
     if (!parsed.success) {
-      throw new AppError("Invalid request", 400, "VALIDATION_ERROR", parsed.error.flatten());
+      res
+        .status(400)
+        .json({ error: "Invalid request", details: parsed.error.flatten() });
+      return;
     }
     const { acbu_amount, currency, recipient_account, blockchain_tx_hash } =
       parsed.data;
@@ -105,11 +109,10 @@ export async function burnAcbu(
       }
     }
 
-    const acbuDecimal = parseMonetaryString(acbu_amount, "acbu_amount");
-    const acbuNum = acbuDecimal.toNumber(); // Only convert at boundary for existing code
+    const acbuNum = Number(acbu_amount);
     const burnFeeBps = await getBurnFeeBps(currency);
-    const feeAcbuDecimal = calculateFee(acbuDecimal, burnFeeBps);
-    const acbuAmount7 = decimalToContractNumber(acbuDecimal).toString();
+    const feeAcbu = (acbuNum * burnFeeBps) / 10000;
+    const acbuAmount7 = Math.round(acbuNum * DECIMALS_7).toString();
 
     const acbuRateRecord = await prisma.acbuRate.findFirst({
       orderBy: { timestamp: "desc" },
@@ -127,19 +130,19 @@ export async function burnAcbu(
     ) {
       throw new Error(`Rate not found for currency ${currency}`);
     }
-    const acbuPerLocalDecimal = new Decimal(acbuPerLocal.toNumber());
-    const localDecimal = acbuDecimal.mul(acbuPerLocalDecimal);
+    const localNum = acbuNum * acbuPerLocal.toNumber();
 
     // SECURITY: Always enforce circuit breaker and withdrawal limits
     // Previously these checks were skipped when req.audience was undefined,
     // allowing bypass of critical financial controls via direct /burn/acbu route
     const paused = await isCurrencyWithdrawalPaused(currency);
     if (paused) {
-      throw new AppError(
-        `Single-currency withdrawals for ${currency} are temporarily paused (reserve below threshold). Basket withdrawals continue.`,
-        503,
-        "CIRCUIT_BREAKER",
-      );
+      res.status(503).json({
+        error: "Withdrawal paused for currency",
+        code: "CIRCUIT_BREAKER",
+        message: `Single-currency withdrawals for ${currency} are temporarily paused (reserve below threshold). Basket withdrawals continue.`,
+      });
+      return;
     }
 
     // Apply withdrawal limits - use retail as default if no audience is set
@@ -195,13 +198,49 @@ export async function burnAcbu(
       return;
     }
 
+    let tx: Transaction;
+    try {
+      tx = await prisma.transaction.create({ data: createData });
+    } catch (err) {
+      // Idempotency: if another request created the same hash concurrently, return the original record.
+      if (
+        burningEnabled &&
+        blockchain_tx_hash &&
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        const existing = await prisma.transaction.findFirst({
+          where: { type: "burn", blockchainTxHash: blockchain_tx_hash },
+        });
+        if (existing) {
+          respondFromExistingBurnTx(res, existing, blockchain_tx_hash);
+          return;
+        }
+      }
+      throw err;
+    }
     await logAudit({
       eventType: "transaction",
       entityType: "transaction",
       entityId: tx.id,
       action: "burn_created",
-      newValue: { type: "burn", acbuAmount: acbuDecimal.toNumber(), currency },
+      newValue: { type: "burn", acbuAmount: acbuNum, currency },
       performedBy: req.apiKey?.userId ?? undefined,
+    });
+
+    const burnCorrelationId =
+      (req.headers["x-request-id"] as string | undefined) ?? crypto.randomUUID();
+
+    logFinancialEvent({
+      event: "burn.initiated",
+      status: "pending",
+      transactionId: tx.id,
+      userId: req.apiKey?.userId ?? tx.id,
+      accountId: req.apiKey?.userId ?? tx.id,
+      idempotencyKey: blockchain_tx_hash ?? tx.id,
+      amount: Math.round(acbuNum * DECIMALS_7), // stroops
+      currency: "ACBU",
+      correlationId: burnCorrelationId,
     });
 
     if (burningEnabled) {
@@ -219,21 +258,33 @@ export async function burnAcbu(
           acbuAmount: acbuAmount7,
           currency,
         });
-        const localNumFromContractDecimal = contractNumberToDecimal(Number(result.localAmount), 2);
+        const localNumFromContract = Number(result.localAmount) / 100; // contract may use 2 decimals for fiat
         await prisma.transaction.update({
           where: { id: tx.id },
           data: {
             status: "processing",
-            localAmount: new Decimal(localNumFromContractDecimal),
+            localAmount: new Decimal(localNumFromContract),
             blockchainTxHash: result.transactionHash,
           },
         });
+        logFinancialEvent({
+          event: "burn.processing",
+          status: "pending",
+          transactionId: tx.id,
+          userId: req.apiKey?.userId ?? tx.id,
+          accountId: req.apiKey?.userId ?? tx.id,
+          idempotencyKey: blockchain_tx_hash ?? tx.id,
+          amount: Math.round(acbuNum * DECIMALS_7),
+          currency: "ACBU",
+          correlationId: burnCorrelationId,
+          providerRef: result.transactionHash,
+        });
         res.status(200).json({
           transaction_id: tx.id,
-          acbu_amount: acbuDecimal.toString(),
-          local_amount: localNumFromContractDecimal.toString(),
+          acbu_amount: String(acbuNum),
+          local_amount: String(localNumFromContract),
           currency,
-          fee: feeAcbuDecimal.toString(),
+          fee: String(feeAcbu),
           rate: { acbu_ngn: null, timestamp: new Date().toISOString() },
           status: "processing",
           estimated_completion: null,
@@ -245,6 +296,18 @@ export async function burnAcbu(
           where: { id: tx.id },
           data: { status: "failed" },
         });
+        logFinancialEvent({
+          event: "burn.failed",
+          status: "failed",
+          transactionId: tx.id,
+          userId: req.apiKey?.userId ?? tx.id,
+          accountId: req.apiKey?.userId ?? tx.id,
+          idempotencyKey: blockchain_tx_hash ?? tx.id,
+          amount: Math.round(acbuNum * DECIMALS_7),
+          currency: "ACBU",
+          correlationId: burnCorrelationId,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        });
         next(err);
         return;
       }
@@ -252,10 +315,10 @@ export async function burnAcbu(
 
     res.status(200).json({
       transaction_id: tx.id,
-      acbu_amount: acbuDecimal.toString(),
+      acbu_amount: String(acbuNum),
       local_amount: null,
       currency,
-      fee: feeAcbuDecimal.toString(),
+      fee: String(feeAcbu),
       rate: { acbu_ngn: null, timestamp: new Date().toISOString() },
       status: "pending",
       estimated_completion: null,
