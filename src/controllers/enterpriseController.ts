@@ -28,7 +28,12 @@ function getUploadedFile(
     return undefined;
   }
 
-  return file as { buffer: Buffer; originalname?: string; mimetype?: string; size?: number };
+  return file as {
+    buffer: Buffer;
+    originalname?: string;
+    mimetype?: string;
+    size?: number;
+  };
 }
 
 function isCsvUpload(file: {
@@ -89,7 +94,6 @@ export async function postBulkTransfer(
       failure_report: result.failureReport,
     });
     return;
-
   } catch (e) {
     if (e instanceof AppError) {
       return next(e);
@@ -103,47 +107,15 @@ export async function postBulkTransfer(
  * Returns a stub treasury response until treasury aggregation is implemented.
  */
 export async function getTreasury(
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
     res.status(200).json({
-      totalBalanceUsd: treasury.totalBalanceUsd,
-      totalReserveAmount: treasury.totalReserveAmount,
-      summary: treasury.summary,
-      byCurrency: treasury.byCurrency.map((item) => ({
-        currency: item.currency,
-        targetWeight: item.targetWeight,
-        reserveAmount: item.combined.reserveAmount,
-        reserveValueUsd: item.combined.reserveValueUsd,
-        segments: {
-          transactions: {
-            amount: item.transactions.reserveAmount,
-            valueUsd: item.transactions.reserveValueUsd,
-            fxRate: item.transactions.fxRate,
-            fxRateTimestamp: item.transactions.fxRateTimestamp,
-            fxRateSource: item.transactions.fxRateSource,
-          },
-          investmentSavings: {
-            amount: item.investmentSavings.reserveAmount,
-            valueUsd: item.investmentSavings.reserveValueUsd,
-            fxRate: item.investmentSavings.fxRate,
-            fxRateTimestamp: item.investmentSavings.fxRateTimestamp,
-            fxRateSource: item.investmentSavings.fxRateSource,
-          },
-        },
-      })),
-      reconciliation: {
-        ledgerTotal: treasury.reconciliation.ledgerTotal,
-        calculatedTotal: treasury.reconciliation.calculatedTotal,
-        discrepancy: treasury.reconciliation.discrepancy,
-        discrepancyPercentage: treasury.reconciliation.discrepancyPercentage,
-        isReconciled: treasury.reconciliation.isReconciled,
-        tolerancePercentage: treasury.reconciliation.tolerancePercentage,
-        warnings: treasury.reconciliation.warnings,
-      },
-      message: treasury.message,
+      totalBalance: null,
+      byCurrency: [],
+      message: "Treasury view not yet implemented.",
     });
   } catch (e) {
     next(e);

@@ -93,7 +93,7 @@ export async function getSalaryBatches(
     });
 
     res.status(200).json({
-      batches: batches.map((b) => ({
+      batches: batches.map((b: (typeof batches)[number]) => ({
         batch_id: b.id,
         status: b.status,
         total_amount: b.totalAmount.toString(),
@@ -177,7 +177,7 @@ export async function getSalarySchedules(
     });
 
     res.status(200).json({
-      schedules: schedules.map((s) => ({
+      schedules: schedules.map((s: (typeof schedules)[number]) => ({
         schedule_id: s.id,
         name: s.name,
         cron: s.cron,

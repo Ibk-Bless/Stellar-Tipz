@@ -8,7 +8,6 @@ import {
   Keypair,
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
-import { Decimal } from "@prisma/client/runtime/library";
 import { prisma } from "../../config/database";
 import { stellarClient } from "../stellar/client";
 import { getBaseFee } from "../stellar/feeManager";
@@ -85,7 +84,9 @@ export async function createTransfer(
     throw new Error("Sender user not found");
   }
   if (sender.kycStatus !== "verified") {
-    throw new Error("KYC required to make payments. Complete verification first.");
+    throw new Error(
+      "KYC required to make payments. Complete verification first.",
+    );
   }
 
   const recipientAddress = await resolveRecipientToStellarAddress(
@@ -107,7 +108,7 @@ export async function createTransfer(
       type: "transfer",
       status: "pending",
       recipientAddress,
-      acbuAmount: new Decimal(amount),
+      acbuAmount: amount,
     },
   });
 

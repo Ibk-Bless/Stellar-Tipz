@@ -4,11 +4,7 @@ import bcrypt from "bcryptjs";
 import { AppError } from "./errorHandler";
 import { logger } from "../config/logger";
 import jwt from "jsonwebtoken";
-import {
-  PermissionScopeEnum,
-  PermissionsArraySchema,
-  PermissionScope,
-} from "../types/permissions";
+import { PermissionScopeEnum, PermissionScope } from "../types/permissions";
 
 export type Audience = "retail" | "business" | "government";
 export type UserTier = "free" | "verified" | "sme" | "enterprise";

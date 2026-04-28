@@ -6,6 +6,7 @@
  */
 import bcrypt from "bcryptjs";
 import { totp } from "otplib";
+import { config } from "../../config/env";
 import { prisma } from "../../config/database";
 import { generateApiKey } from "../../middleware/auth";
 import { signChallengeToken, verifyChallengeToken } from "../../utils/jwt";
@@ -144,18 +145,13 @@ function validateAdminScopes(scopes: string[]): PermissionScope[] {
     const invalid = parsed.error.errors.map((e) => e.message).join(", ");
     throw new Error(`Invalid permission scope(s): ${invalid}`);
   }
-  const nonAdmin = parsed.data.filter(
-    (s) => !(ADMIN_SCOPES as readonly string[]).includes(s),
+  const adminOnly = parsed.data.filter((s) =>
+    (ADMIN_SCOPES as readonly string[]).includes(s),
   );
-  if (nonAdmin.length > 0) {
-    throw new Error(
-      `Non-admin scopes are not permitted on admin keys: ${nonAdmin.join(", ")}`,
-    );
-  }
-  if (parsed.data.length === 0) {
+  if (adminOnly.length === 0) {
     throw new Error("At least one admin scope is required");
   }
-  return parsed.data as PermissionScope[];
+  return adminOnly as PermissionScope[];
 }
 
 async function publishOtp(channel: "sms" | "email", to: string, code: string) {
@@ -332,7 +328,9 @@ export async function signin(params: SigninParams): Promise<SigninResult> {
 
   if (user?.lockoutUntil && user.lockoutUntil > new Date()) {
     logger.warn("Signin: account locked", { userId: user.id });
-    throw new Error("Account locked due to too many failed attempts. Please try again later.");
+    throw new Error(
+      "Account locked due to too many failed attempts. Please try again later.",
+    );
   }
 
   if (!user || !user.passcodeHash) {
@@ -349,21 +347,21 @@ export async function signin(params: SigninParams): Promise<SigninResult> {
   if (!match) {
     const failedAttempts = user.failedSigninAttempts + 1;
     const isLockout = failedAttempts >= config.maxSigninAttempts;
-    
+
     await prisma.user.update({
       where: { id: user.id },
       data: {
         failedSigninAttempts: failedAttempts,
-        lockoutUntil: isLockout 
+        lockoutUntil: isLockout
           ? new Date(Date.now() + config.signinLockoutDurationMs)
           : null,
       },
     });
 
-    logger.warn("Signin: invalid passcode", { 
-      userId: user.id, 
+    logger.warn("Signin: invalid passcode", {
+      userId: user.id,
       failedAttempts,
-      isLockout 
+      isLockout,
     });
     throw new Error("Invalid credentials");
   }
@@ -475,30 +473,32 @@ export async function verify2fa(
 
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { 
-      id: true, 
-      twoFaMethod: true, 
+    select: {
+      id: true,
+      twoFaMethod: true,
       totpSecretEncrypted: true,
       lockoutUntil: true,
-      failedSigninAttempts: true
+      failedSigninAttempts: true,
     },
   });
   if (!user || !user.twoFaMethod) throw new Error("Invalid credentials"); // Uniform message
 
   if (user.lockoutUntil && user.lockoutUntil > new Date()) {
     logger.warn("Verify2FA: account locked", { userId: user.id });
-    throw new Error("Account locked due to too many failed attempts. Please try again later.");
+    throw new Error(
+      "Account locked due to too many failed attempts. Please try again later.",
+    );
   }
 
   const handleFailure = async () => {
     const failedAttempts = user.failedSigninAttempts + 1;
     const isLockout = failedAttempts >= config.maxSigninAttempts;
-    
+
     await prisma.user.update({
       where: { id: user.id },
       data: {
         failedSigninAttempts: failedAttempts,
-        lockoutUntil: isLockout 
+        lockoutUntil: isLockout
           ? new Date(Date.now() + config.signinLockoutDurationMs)
           : null,
       },
