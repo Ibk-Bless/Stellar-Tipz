@@ -107,12 +107,11 @@ describe("TreasuryService", () => {
       expect(ngnEntry?.combined.reserveValueUsd).toBeCloseTo(1001.25, 2);
 
       const kesEntry = result.byCurrency.find((c) => c.currency === "KES");
-      expect(kesEntry?.combined.reserveValueUsd).toBeCloseTo(385.00, 2);
+      expect(kesEntry?.combined.reserveValueUsd).toBeCloseTo(385.0, 2);
     });
 
     it("uses current FX rate when available", async () => {
       const now = new Date();
-      const yesterdayDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       mockPrisma.reserve.findMany.mockResolvedValue([
         {
@@ -166,7 +165,9 @@ describe("TreasuryService", () => {
       const result = await getEnterpriseTreasury();
 
       expect(result.byCurrency[0].transactions.fxRateSource).toBe("fallback");
-      expect(result.byCurrency[0].transactions.fxRateTimestamp).toEqual(threeDaysAgo);
+      expect(result.byCurrency[0].transactions.fxRateTimestamp).toEqual(
+        threeDaysAgo,
+      );
     });
 
     it("uses rate=1 when no FX rate available at all", async () => {
@@ -353,8 +354,11 @@ describe("TreasuryService", () => {
       const result = await getEnterpriseTreasury();
 
       expect(result.totalBalanceUsd).toBeCloseTo(6776.25, 2);
-      expect(result.summary.transactionsSegmentUsd).toBeCloseTo(4517.50, 2);
-      expect(result.summary.investmentSavingsSegmentUsd).toBeCloseTo(2258.75, 2);
+      expect(result.summary.transactionsSegmentUsd).toBeCloseTo(4517.5, 2);
+      expect(result.summary.investmentSavingsSegmentUsd).toBeCloseTo(
+        2258.75,
+        2,
+      );
     });
 
     it("handles enterprise-scale data with many currencies", async () => {
@@ -461,7 +465,9 @@ describe("TreasuryService", () => {
 
       expect(result.healthy).toBe(false);
       expect(result.totalBalanceUsd).toBe(0);
-      expect(result.warnings).toContain("Treasury health check failed - see server logs");
+      expect(result.warnings).toContain(
+        "Treasury health check failed - see server logs",
+      );
     });
   });
 

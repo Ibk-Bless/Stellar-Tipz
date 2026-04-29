@@ -47,6 +47,7 @@ jest.mock("@stellar/stellar-sdk", () => {
 
 jest.mock("../src/config/logger", () => ({
   logger: { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+  logFinancialEvent: jest.fn(),
 }));
 
 import { prisma } from "../src/config/database";

@@ -18,7 +18,11 @@ export async function connectMongoDB(): Promise<Db> {
     const collection = db.collection("cache");
 
     // Define index configurations
-    const indexConfigs = [
+    const indexConfigs: Array<{
+      spec: Record<string, 1>;
+      options: { name: string; expireAfterSeconds?: number };
+      critical: boolean;
+    }> = [
       {
         spec: { key: 1, expiresAt: 1 },
         options: { name: "idx_key_expiresAt" },
@@ -33,16 +37,16 @@ export async function connectMongoDB(): Promise<Db> {
 
     // Execute all index creations regardless of individual failures
     const results = await Promise.allSettled(
-      indexConfigs.map((idx) => collection.createIndex(idx.spec, idx.options))
+      indexConfigs.map((idx) => collection.createIndex(idx.spec, idx.options)),
     );
 
     // Evaluate results
     results.forEach((result, i) => {
       if (result.status === "rejected") {
         const config = indexConfigs[i];
-        const logData = { 
-          indexName: config.options.name, 
-          error: result.reason 
+        const logData = {
+          indexName: config.options.name,
+          error: result.reason,
         };
 
         if (config.critical) {

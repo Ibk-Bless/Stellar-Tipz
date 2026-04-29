@@ -28,7 +28,12 @@ function getUploadedFile(
     return undefined;
   }
 
-  return file as { buffer: Buffer; originalname?: string; mimetype?: string; size?: number };
+  return file as {
+    buffer: Buffer;
+    originalname?: string;
+    mimetype?: string;
+    size?: number;
+  };
 }
 
 function isCsvUpload(file: {
@@ -37,10 +42,13 @@ function isCsvUpload(file: {
 }): boolean {
   const name = file.originalname?.toLowerCase() ?? "";
   const mimetype = file.mimetype?.toLowerCase() ?? "";
+  const hasCsvExtension = name.endsWith(".csv");
   return (
     mimetype.includes("text/csv") ||
-    mimetype.includes("text/plain") ||
-    name.endsWith(".csv")
+    mimetype.includes("application/csv") ||
+    mimetype.includes("application/vnd.ms-excel") ||
+    (mimetype.includes("text/plain") && hasCsvExtension) ||
+    hasCsvExtension
   );
 }
 
@@ -54,13 +62,38 @@ export async function postBulkTransfer(
   next: NextFunction,
 ): Promise<void> {
   try {
-    // TODO: bulk transfer (many transfers); idempotency; enterprise limits
-    throw new AppError(
-      "Bulk transfer endpoint not yet implemented. Use /transfers for single transfers.",
-      501,
-      "NOT_IMPLEMENTED",
-    );
+    const organizationId = req.apiKey?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization-scoped API key required", 401);
+    }
 
+    const file = getUploadedFile(req);
+    if (!file?.buffer) {
+      throw new AppError("CSV upload is required", 400);
+    }
+    if (!isCsvUpload(file)) {
+      throw new AppError("Only CSV uploads are supported", 400);
+    }
+
+    const result = await processBulkTransfer({
+      organizationId,
+      senderUserId: req.apiKey?.userId ?? undefined,
+      fileContent: file.buffer,
+      fileName: file.originalname,
+    });
+
+    res.status(200).json({
+      job_id: result.jobId,
+      total_rows: result.totalRows,
+      success_count: result.successCount,
+      failure_count: result.failureCount,
+      skipped_count: result.skippedCount,
+      status: result.status,
+      created_at: result.createdAt,
+      completed_at: result.completedAt ?? null,
+      failure_report: result.failureReport,
+    });
+    return;
   } catch (e) {
     if (e instanceof AppError) {
       return next(e);
@@ -74,47 +107,15 @@ export async function postBulkTransfer(
  * Returns a stub treasury response until treasury aggregation is implemented.
  */
 export async function getTreasury(
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
     res.status(200).json({
-      totalBalanceUsd: treasury.totalBalanceUsd,
-      totalReserveAmount: treasury.totalReserveAmount,
-      summary: treasury.summary,
-      byCurrency: treasury.byCurrency.map((item) => ({
-        currency: item.currency,
-        targetWeight: item.targetWeight,
-        reserveAmount: item.combined.reserveAmount,
-        reserveValueUsd: item.combined.reserveValueUsd,
-        segments: {
-          transactions: {
-            amount: item.transactions.reserveAmount,
-            valueUsd: item.transactions.reserveValueUsd,
-            fxRate: item.transactions.fxRate,
-            fxRateTimestamp: item.transactions.fxRateTimestamp,
-            fxRateSource: item.transactions.fxRateSource,
-          },
-          investmentSavings: {
-            amount: item.investmentSavings.reserveAmount,
-            valueUsd: item.investmentSavings.reserveValueUsd,
-            fxRate: item.investmentSavings.fxRate,
-            fxRateTimestamp: item.investmentSavings.fxRateTimestamp,
-            fxRateSource: item.investmentSavings.fxRateSource,
-          },
-        },
-      })),
-      reconciliation: {
-        ledgerTotal: treasury.reconciliation.ledgerTotal,
-        calculatedTotal: treasury.reconciliation.calculatedTotal,
-        discrepancy: treasury.reconciliation.discrepancy,
-        discrepancyPercentage: treasury.reconciliation.discrepancyPercentage,
-        isReconciled: treasury.reconciliation.isReconciled,
-        tolerancePercentage: treasury.reconciliation.tolerancePercentage,
-        warnings: treasury.reconciliation.warnings,
-      },
-      message: treasury.message,
+      totalBalance: null,
+      byCurrency: [],
+      message: "Treasury view not yet implemented.",
     });
   } catch (e) {
     next(e);

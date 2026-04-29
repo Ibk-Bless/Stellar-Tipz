@@ -12,7 +12,6 @@ import { corsMiddleware } from "./middleware/cors";
 import { requestLogger } from "./middleware/logger";
 import { errorHandler } from "./middleware/errorHandler";
 import { standardRateLimiter } from "./middleware/rateLimiter";
-import { versioningMiddleware } from "./middleware/versioning";
 import { swaggerSpec } from "./config/swagger";
 import routes from "./routes";
 import webhookRoutes from "./routes/webhookRoutes";
@@ -226,6 +225,9 @@ const shutdown = async () => {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
-startServer();
+if (require.main === module) {
+  void startServer();
+}
 
+export { startServer };
 export default app;

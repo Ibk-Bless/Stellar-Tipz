@@ -96,6 +96,9 @@ import {
  *                 type: string
  *                 minLength: 1
  *                 description: User's passcode
+ *               captcha_token:
+ *                 type: string
+ *                 description: Optional CAPTCHA token required when the auth service requests bot verification
  *     responses:
  *       200:
  *         description: Authentication successful or 2FA required

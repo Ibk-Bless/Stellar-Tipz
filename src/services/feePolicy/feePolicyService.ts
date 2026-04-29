@@ -41,6 +41,8 @@ const HIGH_RESERVE_BURN_FEE_BPS = 5;
 const LOW_RESERVE_THRESHOLD_PCT = 85;
 /** Trigger low burn fee above 115% of target reserve weight. */
 const HIGH_RESERVE_THRESHOLD_PCT = 115;
+/** Float tolerance for reserve weight boundary checks. */
+const RESERVE_THRESHOLD_EPSILON = 1e-9;
 
 /** Sanity check: minimum fee in BPS (0.01% = 1). */
 const MIN_SANITY_FEE_BPS = 1;
@@ -129,10 +131,10 @@ export async function getBurnFeeBps(currency: string): Promise<number> {
   const pctOfTarget = (actualWeight / targetWeight) * 100;
   
   let feeBps: number;
-  if (pctOfTarget < LOW_RESERVE_THRESHOLD_PCT) {
+  if (pctOfTarget < LOW_RESERVE_THRESHOLD_PCT - RESERVE_THRESHOLD_EPSILON) {
     // Low reserves: discourage burns with high fee
     feeBps = LOW_RESERVE_BURN_FEE_BPS;
-  } else if (pctOfTarget > HIGH_RESERVE_THRESHOLD_PCT) {
+  } else if (pctOfTarget > HIGH_RESERVE_THRESHOLD_PCT + RESERVE_THRESHOLD_EPSILON) {
     // High reserves: encourage burns with low fee
     feeBps = HIGH_RESERVE_BURN_FEE_BPS;
   } else {
