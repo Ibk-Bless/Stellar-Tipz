@@ -30,6 +30,7 @@ import investmentRoutes from "./investmentRoutes";
 import fiatRoutes from "./fiatRoutes";
 import configRoutes from "./configRoutes";
 import complianceRoutes from "./complianceRoutes";
+import weightDriftAuditRoutes from "./weightDriftAuditRoutes";
 
 const router: ReturnType<typeof Router> = Router();
 
@@ -98,5 +99,6 @@ router.use("/config", configRoutes);
 router.use("/kyc", kycRoutes);
 router.use("/webhooks", webhookRoutes);
 router.use("/compliance", complianceRoutes);
+router.use("/admin/weight-drift-audits", weightDriftAuditRoutes);
 
 export default router;
