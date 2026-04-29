@@ -167,6 +167,11 @@ async function startServer() {
       const { startYieldAccrualScheduler } = await import("./jobs/yieldAccrualJob");
       await startYieldAccrualScheduler();
 
+      // Start weekly weight drift audit job (Monday 00:00 UTC)
+      const { startWeightDriftAuditScheduler } =
+        await import("./jobs/weightDriftAuditJob");
+      await startWeightDriftAuditScheduler();
+
       // Salary schedule: trigger recurring salary payments
       const { startSalaryScheduleScheduler } =
         await import("./jobs/salaryScheduleJob");

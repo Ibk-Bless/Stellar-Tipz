@@ -99,5 +99,6 @@ router.use("/config", configRoutes);
 router.use("/kyc", kycRoutes);
 router.use("/webhooks", webhookRoutes);
 router.use("/compliance", complianceRoutes);
+router.use("/admin/weight-drift-audits", weightDriftAuditRoutes);
 
 export default router;
