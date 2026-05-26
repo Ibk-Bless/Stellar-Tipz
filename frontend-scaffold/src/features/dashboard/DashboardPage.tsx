@@ -44,7 +44,7 @@ const DashboardPage: React.FC = () => {
       <PageContainer maxWidth="xl" className="space-y-8 py-10">
         <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
               Creator dashboard
             </p>
             <h1 className="mt-2 flex items-center gap-3 text-4xl font-black uppercase">
@@ -104,7 +104,7 @@ const DashboardPage: React.FC = () => {
       <PageContainer maxWidth="xl" className="space-y-8 py-10">
         <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
               Creator dashboard
             </p>
             <h1 className="mt-2 flex items-center gap-3 text-4xl font-black uppercase">
@@ -190,7 +190,7 @@ const DashboardPage: React.FC = () => {
     <PageContainer maxWidth="xl" className="space-y-8 py-10">
       <section aria-labelledby="dashboard-heading" className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
             Creator dashboard
           </p>
           <h1 id="dashboard-heading" className="mt-2 flex items-center gap-3 text-4xl font-black uppercase">

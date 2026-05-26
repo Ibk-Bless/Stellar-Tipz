@@ -93,7 +93,12 @@ const ErrorState: React.FC<ErrorStateProps> = ({
   };
 
   return (
-    <div className={`flex items-center justify-center py-12 px-4 ${className}`}>
+    <div
+      className={`flex items-center justify-center py-12 px-4 ${className}`}
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
       <Card className="max-w-md w-full text-center" padding="lg">
         <div className="flex justify-center mb-6">
           <div className="p-4 bg-gray-50 border-2 border-black">

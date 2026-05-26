@@ -52,7 +52,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ profile }) => {
                   <CopyButton text={profile.username} className="h-8 w-8 !p-0" />
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-500 bg-gray-100 px-3 py-1 border-2 border-black h-fit">
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-800 dark:text-gray-200 bg-gray-100 px-3 py-1 border-2 border-black h-fit">
                 <CalendarDays size={14} />
                 Joined {registeredDate}
               </div>
@@ -72,19 +72,19 @@ const ProfileView: React.FC<ProfileViewProps> = ({ profile }) => {
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 border-t-4 border-black bg-white">
         <div className="p-6 border-r-4 border-black group hover:bg-black hover:text-white transition-colors">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-400 mb-2">Total Tips</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200 group-hover:text-gray-700 dark:text-gray-300 mb-2">Total Tips</p>
           <AmountDisplay amount={profile.totalTipsReceived} className="text-xl md:text-2xl" />
         </div>
         <div className="p-6 border-r-0 md:border-r-4 border-black group hover:bg-black hover:text-white transition-colors">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-400 mb-2">Tip Count</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200 group-hover:text-gray-700 dark:text-gray-300 mb-2">Tip Count</p>
           <p className="text-2xl md:text-3xl font-black">{profile.totalTipsCount}</p>
         </div>
         <div className="p-6 border-t-4 border-r-4 md:border-t-0 md:border-r-4 border-black group hover:bg-black hover:text-white transition-colors">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-400 mb-2">Credit Score</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200 group-hover:text-gray-700 dark:text-gray-300 mb-2">Credit Score</p>
           <p className="text-2xl md:text-3xl font-black">{profile.creditScore}</p>
         </div>
         <div className="p-6 border-t-4 md:border-t-0 border-black group hover:bg-black hover:text-white transition-colors">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-400 mb-2">Balance</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200 group-hover:text-gray-700 dark:text-gray-300 mb-2">Balance</p>
           <AmountDisplay amount={profile.balance} className="text-xl md:text-2xl" />
         </div>
       </div>

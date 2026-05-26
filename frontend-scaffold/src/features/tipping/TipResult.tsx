@@ -32,6 +32,9 @@ const TipResult: React.FC<TipResultProps> = ({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
       className="relative overflow-hidden border-2 border-black bg-white p-6"
+      role={status === "error" ? "alert" : "status"}
+      aria-live={status === "error" ? "assertive" : "polite"}
+      aria-atomic="true"
     >
       {status === "success" && (
         <>

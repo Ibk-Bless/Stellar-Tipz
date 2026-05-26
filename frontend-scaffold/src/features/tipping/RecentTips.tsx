@@ -27,7 +27,7 @@ const RecentTips: React.FC<RecentTipsProps> = ({ address }) => {
       {tips.map((tip) => (
         <div key={tip.id} className="border-2 border-black p-4">
           <div className="flex items-center justify-between gap-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">Supporter note</p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">Supporter note</p>
             <AmountDisplay amount={tip.amount} />
           </div>
           <p className="mt-3 text-sm font-medium text-gray-700">{tip.message || 'No message attached.'}</p>

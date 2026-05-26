@@ -36,13 +36,13 @@ const EmbedCodeGenerator: React.FC<EmbedCodeGeneratorProps> = ({ username }) => 
             <h3 className="text-xl font-black uppercase flex items-center gap-2">
               <Settings size={20} /> Customize Widget
             </h3>
-            <p className="text-sm font-bold text-gray-500 mt-1">
+            <p className="text-sm font-bold text-gray-800 dark:text-gray-200 mt-1">
               Configure how your tipping widget looks on your site.
             </p>
           </div>
 
           <div className="space-y-3">
-            <label className="block text-xs font-black uppercase tracking-widest text-gray-500">
+            <label className="block text-xs font-black uppercase tracking-widest text-gray-800 dark:text-gray-200">
               Theme
             </label>
             <div className="flex gap-2">
@@ -66,7 +66,7 @@ const EmbedCodeGenerator: React.FC<EmbedCodeGeneratorProps> = ({ username }) => 
           </div>
 
           <div className="space-y-2">
-            <label className="block text-xs font-black uppercase tracking-widest text-gray-500">
+            <label className="block text-xs font-black uppercase tracking-widest text-gray-800 dark:text-gray-200">
               Preset Amounts (comma separated)
             </label>
             <Input
@@ -78,7 +78,7 @@ const EmbedCodeGenerator: React.FC<EmbedCodeGeneratorProps> = ({ username }) => 
           </div>
 
           <div className="space-y-2">
-            <label className="block text-xs font-black uppercase tracking-widest text-gray-500">
+            <label className="block text-xs font-black uppercase tracking-widest text-gray-800 dark:text-gray-200">
               Embed Code
             </label>
             <div className="relative">
@@ -111,7 +111,7 @@ const EmbedCodeGenerator: React.FC<EmbedCodeGeneratorProps> = ({ username }) => 
             <h3 className="text-xl font-black uppercase flex items-center gap-2">
               <Code size={20} /> Preview
             </h3>
-            <p className="text-sm font-bold text-gray-500 mt-1">
+            <p className="text-sm font-bold text-gray-800 dark:text-gray-200 mt-1">
               This is how it will appear on your website.
             </p>
           </div>

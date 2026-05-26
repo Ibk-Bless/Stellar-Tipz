@@ -184,8 +184,8 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
         aria-label="Global search"
       >
         <div className="flex items-center border-b-[3px] border-black px-4 py-3">
-          <Search size={16} className="text-gray-500 shrink-0" />
-          <span className="ml-2 mr-2 text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+          <Search size={16} className="text-gray-800 dark:text-gray-200 shrink-0" />
+          <span className="ml-2 mr-2 text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
             Search
           </span>
           <input
@@ -196,17 +196,17 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search creators, usernames..."
-            className="flex-1 bg-transparent text-sm font-medium placeholder:text-gray-400 focus:outline-none"
+            className="flex-1 bg-transparent text-sm font-medium placeholder:text-gray-700 dark:text-gray-300 focus:outline-none"
             aria-label="Search creators"
             aria-autocomplete="list"
             aria-controls="search-results"
           />
           {isLoading ? (
-            <Loader2 size={16} className="animate-spin text-gray-400" />
+            <Loader2 size={16} className="animate-spin text-gray-700 dark:text-gray-300" />
           ) : query ? (
             <button
               onClick={() => setQuery("")}
-              className="text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+              className="text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors"
               aria-label="Clear search"
             >
               <X size={16} />
@@ -224,10 +224,10 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
           {showSuggestions && (
             <div className="px-4 py-8 text-center">
               <Search size={32} className="mx-auto mb-3 text-gray-300" />
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
                 Search for creators by username or display name
               </p>
-              <p className="mt-2 text-xs text-gray-400">
+              <p className="mt-2 text-xs text-gray-700 dark:text-gray-300">
                 Try: "stellarjane" or "orbitmax"
               </p>
             </div>
@@ -236,12 +236,12 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
           {showRecent && (
             <div>
               <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                   Recent searches
                 </span>
                 <button
                   onClick={clearRecent}
-                  className="text-xs text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                  className="text-xs text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors"
                 >
                   Clear
                 </button>
@@ -259,7 +259,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                   }`}
                   aria-selected={selectedIndex === index}
                 >
-                  <Clock size={14} className="text-gray-400 shrink-0" />
+                  <Clock size={14} className="text-gray-700 dark:text-gray-300 shrink-0" />
                   <Avatar
                     alt={profile.displayName || profile.username}
                     address={profile.owner}
@@ -272,7 +272,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                         matchKey="displayName"
                       />
                     </p>
-                    <p className="truncate text-xs text-gray-400">
+                    <p className="truncate text-xs text-gray-700 dark:text-gray-300">
                       @{profile.username} · {truncateString(profile.owner)}
                     </p>
                   </div>
@@ -313,7 +313,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                       matchKey="displayName"
                     />
                   </p>
-                  <p className="truncate text-xs text-gray-400">
+                  <p className="truncate text-xs text-gray-700 dark:text-gray-300">
                     <HighlightedText
                       text={`@${profile.username}`}
                       matches={result.matches}
@@ -330,10 +330,10 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
           {showEmpty && (
             <div className="px-4 py-8 text-center">
               <Search size={32} className="mx-auto mb-3 text-gray-300" />
-              <p className="text-sm font-medium text-gray-500">
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
                 No results found for "{query}"
               </p>
-              <p className="mt-2 text-xs text-gray-400">
+              <p className="mt-2 text-xs text-gray-700 dark:text-gray-300">
                 Try searching for a different username
               </p>
             </div>
@@ -341,7 +341,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
         </div>
 
         <div className="flex items-center justify-between border-t-[3px] border-black px-4 py-2">
-          <div className="flex items-center gap-3 text-xs text-gray-400">
+          <div className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
             <span className="flex items-center gap-1">
               <kbd className="border border-gray-300 px-1.5 py-0.5 font-mono text-xs">
                 ↑
@@ -358,7 +358,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
               <span className="ml-1">to select</span>
             </span>
           </div>
-          <span className="text-xs font-medium text-gray-400">
+          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
             Press{" "}
             <kbd className="border border-gray-300 px-1 font-mono text-xs">
               Esc

@@ -71,7 +71,7 @@ const LeaderboardFilter: React.FC<LeaderboardFilterProps> = ({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         {/* Search */}
         <div className="relative flex-1">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 dark:text-gray-300">
             <Search size={16} />
           </span>
           <input

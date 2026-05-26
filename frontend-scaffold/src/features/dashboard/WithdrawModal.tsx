@@ -134,13 +134,23 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
         </p>
 
         {error && (
-          <div className="p-3 border-2 border-red-500 bg-red-50 text-red-700 text-sm">
+          <div
+            className="p-3 border-2 border-red-500 bg-red-50 text-red-700 text-sm"
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+          >
             {error}
           </div>
         )}
 
         {txHash && (
-          <div className="p-3 border-2 border-green-500 bg-green-50 text-green-700 text-sm">
+          <div
+            className="p-3 border-2 border-green-500 bg-green-50 text-green-700 text-sm"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             Withdrawal successful! Transaction hash: {txHash}
           </div>
         )}
@@ -170,13 +180,13 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
 
         <div className="grid gap-3">
           <div className="border-2 border-black bg-yellow-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
               Available balance
             </p>
             <AmountDisplay amount={balance} className="mt-2 block text-2xl" />
           </div>
           <div className="border-2 border-black bg-white p-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
               Requested amount
             </p>
             <AmountDisplay
@@ -185,7 +195,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
             />
           </div>
           <div className="border-2 border-black bg-white p-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
               Estimated fee
             </p>
             <AmountDisplay amount={fee} className="mt-2 block text-xl" />

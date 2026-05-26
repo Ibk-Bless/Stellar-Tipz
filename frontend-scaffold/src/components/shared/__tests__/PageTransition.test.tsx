@@ -9,10 +9,12 @@ vi.mock('framer-motion', () => ({
     div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   },
   AnimatePresence: ({ children }: any) => <>{children}</>,
-}));
+}), { virtual: true });
 
 describe('PageTransition', () => {
   beforeEach(() => {
+    window.localStorage.clear();
+
     // Reset matchMedia mock
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
@@ -88,6 +90,35 @@ describe('PageTransition', () => {
         </PageTransition>
       </BrowserRouter>
     );
+    const motionDiv = screen.getByText('Test Content').closest('[data-motion]');
+    expect(motionDiv).toBeNull();
+  });
+
+  it('respects user reduced-motion override from settings', () => {
+    window.localStorage.setItem('tipz_settings', JSON.stringify({ reduceMotion: 'always' }));
+
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    render(
+      <BrowserRouter>
+        <PageTransition animationType="fade">
+          <div>Test Content</div>
+        </PageTransition>
+      </BrowserRouter>
+    );
+
     const motionDiv = screen.getByText('Test Content').closest('[data-motion]');
     expect(motionDiv).toBeNull();
   });

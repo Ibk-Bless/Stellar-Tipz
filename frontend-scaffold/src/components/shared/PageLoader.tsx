@@ -41,7 +41,12 @@ const PageLoader: React.FC = () => {
 
   if (isTimedOut || error) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center py-20 px-4 text-center">
+      <div
+        className="flex-1 flex flex-col items-center justify-center py-20 px-4 text-center"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
         <div className="max-w-md space-y-6">
           <div className="space-y-2">
             <h2 className="text-xl font-bold text-red-600">
@@ -72,7 +77,13 @@ const PageLoader: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center py-20" role="status">
+    <div
+      className="flex-1 flex items-center justify-center py-20"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-atomic="true"
+    >
       <Loader text="Loading..." />
     </div>
   );

@@ -27,7 +27,7 @@ const TipAmountPresets: React.FC<TipAmountPresetsProps> = ({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+      <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
         Quick amount
       </p>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">

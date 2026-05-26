@@ -88,7 +88,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ className }) => {
                             <span className="text-[10px] font-bold text-green-600 uppercase">Installed</span>
                           </>
                         ) : (
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">Not detected</span>
+                          <span className="text-[10px] font-bold text-gray-800 dark:text-gray-200 uppercase">Not detected</span>
                         )}
                       </div>
                     </div>
@@ -132,7 +132,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ className }) => {
               <HelpCircle size={14} />
               What is a wallet?
             </a>
-            <p className="text-[10px] leading-relaxed text-gray-500 font-medium">
+            <p className="text-[10px] leading-relaxed text-gray-800 dark:text-gray-200 font-medium">
               A wallet allows you to interact with the Stellar network. Your private keys stay in your wallet, and you only use them to sign transactions you approve.
             </p>
           </div>

@@ -80,7 +80,9 @@ export const StatsCardSkeleton: React.FC = () => {
   return (
     <div
       role="status"
+      aria-live="polite"
       aria-busy="true"
+      aria-atomic="true"
       className={`
         bg-white dark:bg-zinc-950 
         border-4 border-black dark:border-white 

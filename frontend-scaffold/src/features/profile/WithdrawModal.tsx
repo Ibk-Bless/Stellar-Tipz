@@ -153,7 +153,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
 
           <div className="grid gap-4 md:grid-cols-3">
             <div className="p-3 border-2 border-black bg-gray-50">
-              <p className="text-[10px] font-black uppercase text-gray-400">
+              <p className="text-[10px] font-black uppercase text-gray-700 dark:text-gray-300">
                 Requested
               </p>
               <AmountDisplay
@@ -162,7 +162,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
               />
             </div>
             <div className="p-3 border-2 border-black bg-gray-50">
-              <p className="text-[10px] font-black uppercase text-gray-400">
+              <p className="text-[10px] font-black uppercase text-gray-700 dark:text-gray-300">
                 Platform Fee
               </p>
               <AmountDisplay amount={fee} className="mt-2 block text-lg" />
@@ -180,7 +180,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
         </div>
 
         <div className="p-6 border-4 border-black bg-yellow-100 flex flex-col items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500 mb-2 text-center">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200 mb-2 text-center">
             Total Available Balance
           </p>
           <AmountDisplay amount={balance} className="text-3xl" />
@@ -203,7 +203,12 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
         ) : null}
 
         {txStatus === "success" && (
-          <div className="p-3 border-2 border-green-500 bg-green-50 text-green-700 text-sm font-bold text-center uppercase">
+          <div
+            className="p-3 border-2 border-green-500 bg-green-50 text-green-700 text-sm font-bold text-center uppercase"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             Withdrawal Successful!
           </div>
         )}
@@ -231,7 +236,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
           </Button>
         </div>
 
-        <p className="text-[10px] text-center font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
+        <p className="text-[10px] text-center font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest leading-relaxed">
           Network fees will be deducted by the Stellar network.
           <br />
           Funds will be available in your wallet instantly.

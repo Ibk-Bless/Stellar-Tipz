@@ -46,6 +46,7 @@ describe("Input", () => {
   it("renders the error message and applies the error border", () => {
     render(<Input label="Amount" error="Must be > 0" />);
     expect(screen.getByText("Must be > 0")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Must be > 0");
     expect(screen.getByLabelText("Amount").className).toMatch(/border-red-500/);
     expect(screen.getByLabelText("Amount")).toHaveAttribute("aria-invalid", "true");
   });

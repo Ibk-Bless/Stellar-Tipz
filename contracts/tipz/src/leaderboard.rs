@@ -13,12 +13,12 @@
 //!
 //! ## Tie-breaking
 //! When two creators have equal `amount`, the one who reached
-//! that amount first keeps the higher rank. This is achieved by using 
+//! that amount first keeps the higher rank. This is achieved by using
 //! binary search that finds the index *after* existing entries with the same amount.
 
 use soroban_sdk::{Address, Env, Vec};
 
-use crate::storage::{self, DataKey};
+use crate::storage;
 use crate::types::{LeaderboardEntry, LeaderboardPeriod, Profile};
 
 /// Maximum number of entries retained on the leaderboard.
@@ -34,8 +34,8 @@ fn save_entries(env: &Env, period: LeaderboardPeriod, entries: &Vec<LeaderboardE
     storage::set_leaderboard(env, period, entries);
 }
 
-/// Finds the first index where an entry with `amount` should be inserted 
-/// to maintain descending order. Stable: new entries are placed after existing 
+/// Finds the first index where an entry with `amount` should be inserted
+/// to maintain descending order. Stable: new entries are placed after existing
 /// ones with the same amount.
 fn find_insertion_index(entries: &Vec<LeaderboardEntry>, amount: i128) -> u32 {
     let mut low = 0;
@@ -51,13 +51,63 @@ fn find_insertion_index(entries: &Vec<LeaderboardEntry>, amount: i128) -> u32 {
     low
 }
 
+fn update_entries(entries: &mut Vec<LeaderboardEntry>, profile: &Profile, amount: i128) {
+    let mut i: u32 = 0;
+    while i < entries.len() {
+        if entries.get(i).unwrap().address == profile.owner {
+            entries.remove(i);
+            break;
+        }
+        i += 1;
+    }
+
+    let insert_pos = find_insertion_index(entries, amount);
+    if insert_pos < MAX_LEADERBOARD_SIZE {
+        let new_entry = LeaderboardEntry {
+            address: profile.owner.clone(),
+            username: profile.username.clone(),
+            amount,
+            credit_score: profile.credit_score,
+        };
+        entries.insert(insert_pos, new_entry);
+
+        if entries.len() > MAX_LEADERBOARD_SIZE {
+            entries.pop_back();
+        }
+    }
+}
+
 // ── public API ────────────────────────────────────────────────────────────────
 
 /// Refresh the leaderboard after `profile` has received a tip.
 pub fn update_all_leaderboards(env: &Env, profile: &Profile, amount: i128) {
-    update_leaderboard(env, profile, LeaderboardPeriod::AllTime, amount);
-    update_leaderboard(env, profile, LeaderboardPeriod::Monthly, amount);
-    update_leaderboard(env, profile, LeaderboardPeriod::Weekly, amount);
+    if storage::is_profile_deactivated(env, &profile.owner) {
+        return;
+    }
+    update_all_leaderboards_for_active(env, profile, amount);
+}
+
+pub fn update_all_leaderboards_for_active(env: &Env, profile: &Profile, amount: i128) {
+    let mut boards = storage::get_leaderboard_set(env).unwrap_or_else(|| storage::LeaderboardSet {
+        all_time: storage::get_leaderboard(env, LeaderboardPeriod::AllTime),
+        monthly: storage::get_leaderboard(env, LeaderboardPeriod::Monthly),
+        weekly: storage::get_leaderboard(env, LeaderboardPeriod::Weekly),
+        monthly_reset_at: storage::get_last_leaderboard_reset(env, LeaderboardPeriod::Monthly),
+        weekly_reset_at: storage::get_last_leaderboard_reset(env, LeaderboardPeriod::Weekly),
+    });
+    let (monthly_total, weekly_total) = storage::add_creator_period_volumes(
+        env,
+        &profile.owner,
+        boards.monthly_reset_at,
+        boards.weekly_reset_at,
+        amount,
+    );
+
+    update_entries(&mut boards.all_time, profile, profile.total_tips_received);
+    update_entries(&mut boards.monthly, profile, monthly_total);
+    update_entries(&mut boards.weekly, profile, weekly_total);
+
+    storage::set_leaderboard_set(env, &boards);
 }
 
 pub fn remove_from_all_leaderboards(env: &Env, address: &Address) {
@@ -66,7 +116,12 @@ pub fn remove_from_all_leaderboards(env: &Env, address: &Address) {
     remove_from_leaderboard(env, LeaderboardPeriod::Weekly, address);
 }
 
-pub fn update_leaderboard(env: &Env, profile: &Profile, period: LeaderboardPeriod, tip_amount: i128) {
+pub fn update_leaderboard(
+    env: &Env,
+    profile: &Profile,
+    period: LeaderboardPeriod,
+    tip_amount: i128,
+) {
     if storage::is_profile_deactivated(env, &profile.owner) {
         return;
     }
@@ -78,50 +133,15 @@ pub fn update_leaderboard(env: &Env, profile: &Profile, period: LeaderboardPerio
     };
 
     let mut entries = load_entries(env, period);
-
-    // 1. Find and remove existing entry for this creator if it exists (O(n))
-    let mut found = false;
-    let mut i: u32 = 0;
-    while i < entries.len() {
-        if entries.get(i).unwrap().address == profile.owner {
-            entries.remove(i);
-            found = true;
-            break;
-        }
-        i += 1;
-    }
-
-    // 2. Find insertion position using binary search (O(log n))
-    let insert_pos = find_insertion_index(&entries, period_total);
-
-    // 3. Insert if it qualifies for the top 50
-    if insert_pos < MAX_LEADERBOARD_SIZE {
-        let new_entry = LeaderboardEntry {
-            address: profile.owner.clone(),
-            username: profile.username.clone(),
-            amount: period_total,
-            credit_score: profile.credit_score,
-        };
-        entries.insert(insert_pos, new_entry);
-
-        // 4. Trim to max size
-        if entries.len() > MAX_LEADERBOARD_SIZE {
-            entries.pop_back();
-        }
-
-        save_entries(env, period, &entries);
-    } else if found {
-        // If it was on the leaderboard but now dropped out (not possible with tips 
-        // as amount only increases, but keeps storage consistent)
-        save_entries(env, period, &entries);
-    }
+    update_entries(&mut entries, profile, period_total);
+    save_entries(env, period, &entries);
 }
 
 pub fn reset_leaderboard(env: &Env, period: LeaderboardPeriod) {
     if period == LeaderboardPeriod::AllTime {
         return; // All-time never resets
     }
-    
+
     let timestamp = env.ledger().timestamp();
     save_entries(env, period, &Vec::new(env));
     storage::set_last_leaderboard_reset(env, period, timestamp);
@@ -154,7 +174,11 @@ pub fn is_on_leaderboard(env: &Env, period: LeaderboardPeriod, address: &Address
 }
 
 #[allow(dead_code)]
-pub fn get_leaderboard_rank(env: &Env, period: LeaderboardPeriod, address: &Address) -> Option<u32> {
+pub fn get_leaderboard_rank(
+    env: &Env,
+    period: LeaderboardPeriod,
+    address: &Address,
+) -> Option<u32> {
     let entries = load_entries(env, period);
     let mut i: u32 = 0;
     for e in entries.iter() {
@@ -220,17 +244,17 @@ mod tests {
     fn test_find_insertion_index() {
         let env = Env::default();
         let mut list = Vec::new(&env);
-        
+
         // Empty
         assert_eq!(find_insertion_index(&list, 100), 0);
-        
+
         list.push_back(LeaderboardEntry {
             address: Address::generate(&env),
             username: String::from_str(&env, "u1"),
             amount: 100,
             credit_score: 50,
         });
-        
+
         // Higher
         assert_eq!(find_insertion_index(&list, 200), 0);
         // Lower
@@ -246,13 +270,13 @@ mod tests {
         env.as_contract(&contract_id, || {
             let addr = Address::generate(&env);
             let profile = make_profile(&env, addr.clone(), "user", 100);
-            
+
             update_leaderboard(&env, &profile, LeaderboardPeriod::AllTime, 0);
-            
+
             let entries = load_entries(&env, LeaderboardPeriod::AllTime);
             assert_eq!(entries.len(), 1);
             assert_eq!(entries.get(0).unwrap().amount, 100);
-            
+
             // Update
             let profile2 = make_profile(&env, addr.clone(), "user", 200);
             update_leaderboard(&env, &profile2, LeaderboardPeriod::AllTime, 0);
@@ -286,7 +310,7 @@ mod tests {
             let result = load_entries(&env, LeaderboardPeriod::AllTime);
             assert_eq!(result.len(), 50);
             assert_eq!(result.get(0).unwrap().address, addr_new);
-            
+
             // Lowest (10) should be gone
             for e in result.iter() {
                 assert!(e.amount > 10 || e.address == addr_new);

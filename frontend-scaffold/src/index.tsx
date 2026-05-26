@@ -31,6 +31,7 @@ function InstallPromptBanner() {
   return (
     <div
       role="status"
+      aria-live="polite"
       aria-busy="false"
       className="fixed bottom-4 left-1/2 z-[9999] w-[min(560px,calc(100%-2rem))] -translate-x-1/2 border-4 border-black bg-white p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
     >
@@ -70,7 +71,13 @@ function InstallPromptBanner() {
 
 function OfflineScreen() {
   return (
-    <div className="min-h-screen bg-off-white p-6" role="status" aria-busy="true">
+    <div
+      className="min-h-screen bg-off-white p-6"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-atomic="true"
+    >
       <div className="mx-auto max-w-2xl border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
         <h1 className="text-3xl font-black uppercase">Offline</h1>
         <p className="mt-3 text-sm font-bold text-gray-700">

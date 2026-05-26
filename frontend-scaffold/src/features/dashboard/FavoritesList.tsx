@@ -18,10 +18,10 @@ const FavoritesList: React.FC = () => {
     return (
       <Card className="p-8 text-center border-4 border-dashed border-gray-200 bg-gray-50/50 shadow-none">
         <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-          <Users className="h-8 w-8 text-gray-400" />
+          <Users className="h-8 w-8 text-gray-700 dark:text-gray-300" />
         </div>
         <h3 className="text-lg font-black uppercase text-gray-900 mb-2">No favorites yet</h3>
-        <p className="text-gray-500 font-bold max-w-xs mx-auto text-sm">
+        <p className="text-gray-800 dark:text-gray-200 font-bold max-w-xs mx-auto text-sm">
           Add creators to your favorites for quick access and faster tipping.
         </p>
         <Button 
@@ -86,7 +86,7 @@ const FavoritesList: React.FC = () => {
                />
                <div className="truncate">
                  <p className="font-black uppercase truncate group-hover:underline">@{creator.username}</p>
-                 <p className="text-[10px] font-black uppercase text-gray-500">
+                 <p className="text-[10px] font-black uppercase text-gray-800 dark:text-gray-200">
                    {creator.tipCount} tips sent
                  </p>
                </div>
@@ -101,7 +101,7 @@ const FavoritesList: React.FC = () => {
                </button>
                <button
                  onClick={() => handleRemove(creator.address, creator.username)}
-                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors rounded"
+                 className="p-2 text-gray-700 dark:text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors rounded"
                  title="Remove"
                >
                  <Trash2 size={18} />

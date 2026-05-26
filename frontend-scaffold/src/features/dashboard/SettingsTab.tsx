@@ -59,11 +59,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ profile }) => {
         </p>
         <div className="grid gap-2 border-2 border-black bg-off-white p-4 text-sm">
           <div className="flex justify-between gap-4 border-b border-gray-200 pb-2">
-            <span className="font-bold uppercase text-gray-500">Username</span>
+            <span className="font-bold uppercase text-gray-800 dark:text-gray-200">Username</span>
             <span className="font-black">@{profile.username}</span>
           </div>
           <div className="flex justify-between gap-4">
-            <span className="font-bold uppercase text-gray-500">
+            <span className="font-bold uppercase text-gray-800 dark:text-gray-200">
               Display name
             </span>
             <span className="font-black">{profile.displayName || "—"}</span>

@@ -216,11 +216,8 @@ pub fn get_profile_with_deactivation(
     env: &Env,
     address: &Address,
 ) -> Result<ProfileWithDeactivation, ContractError> {
-    if !storage::has_profile(env, address) {
-        return Err(ContractError::NotRegistered);
-    }
-    let profile = storage::get_profile(env, address);
-    storage::bump_profile_ttl(env, address);
+    let profile = storage::get_profile_opt(env, address).ok_or(ContractError::NotRegistered)?;
+    storage::bump_existing_profile_ttl(env, address);
     storage::bump_username_ttl(env, &profile.username);
     let deactivated_at = storage::get_profile_deactivated_at(env, address);
     let is_deactivated = deactivated_at.is_some();

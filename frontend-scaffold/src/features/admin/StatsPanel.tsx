@@ -101,7 +101,7 @@ export const StatsPanel: React.FC = () => {
           <div>
             <p className="text-sm text-gray-600">Current Fee Rate</p>
             <p className="text-2xl font-bold">{(stats.feeBps / 100).toFixed(2)}%</p>
-            <p className="text-xs text-gray-500 mt-1">{stats.feeBps} basis points</p>
+            <p className="text-xs text-gray-800 dark:text-gray-200 mt-1">{stats.feeBps} basis points</p>
           </div>
           <div>
             <p className="text-sm text-gray-600">Average Fee per Tip</p>

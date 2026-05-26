@@ -14,7 +14,9 @@
 use soroban_sdk::{contracttype, Address, Env, String};
 
 use crate::errors::ContractError;
-use crate::types::{Profile, LeaderboardPeriod, LeaderboardEntry, RateLimitConfig, RateLimitStatus};
+use crate::types::{
+    LeaderboardEntry, LeaderboardPeriod, Profile, RateLimitConfig, RateLimitStatus,
+};
 
 // ──────────────────────────────────────────────────────────────────────────────
 // TTL constants
@@ -144,6 +146,61 @@ pub enum DataKey {
     CreatorPeriodVolume(Address, crate::types::LeaderboardPeriod, u64),
 }
 
+/// Storage keys for compact performance caches.
+#[contracttype]
+pub enum CacheKey {
+    RuntimeConfig,
+    LeaderboardSet,
+    CreatorPeriodVolumes(Address),
+    SendTipState,
+}
+
+/// Frequently-read runtime configuration kept under one instance key.
+#[contracttype]
+#[derive(Clone)]
+pub struct RuntimeConfig {
+    pub admin: Address,
+    pub fee_collector: Address,
+    pub fee_bps: u32,
+    pub native_token: Address,
+    pub paused: bool,
+    pub min_tip_amount: i128,
+    pub rate_limit: RateLimitConfig,
+}
+
+/// All leaderboard periods cached under one key for write-heavy operations.
+#[contracttype]
+#[derive(Clone)]
+pub struct LeaderboardSet {
+    pub all_time: soroban_sdk::Vec<LeaderboardEntry>,
+    pub monthly: soroban_sdk::Vec<LeaderboardEntry>,
+    pub weekly: soroban_sdk::Vec<LeaderboardEntry>,
+    pub monthly_reset_at: u64,
+    pub weekly_reset_at: u64,
+}
+
+/// Cached non-all-time tip volumes for a creator.
+#[contracttype]
+#[derive(Clone)]
+pub struct CreatorPeriodVolumes {
+    pub monthly_start_at: u64,
+    pub monthly: i128,
+    pub weekly_start_at: u64,
+    pub weekly: i128,
+}
+
+/// Global counters commonly updated during `send_tip`.
+#[contracttype]
+#[derive(Clone)]
+pub struct SendTipState {
+    pub tip_count: u32,
+    pub total_tips_volume: i128,
+    pub stats_window_start: u64,
+    pub tips_last_24h: u32,
+    pub volume_last_24h: i128,
+    pub active_creators_30d: u32,
+}
+
 /// Extend the contract instance TTL when a write transaction starts.
 pub fn extend_instance_ttl(env: &Env) {
     env.storage()
@@ -181,6 +238,9 @@ pub fn set_initialized(env: &Env) {
 /// # Panics
 /// Panics if the contract is not yet initialised.
 pub fn get_native_token(env: &Env) -> Address {
+    if let Some(config) = get_runtime_config(env) {
+        return config.native_token;
+    }
     env.storage()
         .instance()
         .get(&DataKey::NativeToken)
@@ -190,6 +250,9 @@ pub fn get_native_token(env: &Env) -> Address {
 /// Sets the native XLM token contract address.
 pub fn set_native_token(env: &Env, addr: &Address) {
     env.storage().instance().set(&DataKey::NativeToken, addr);
+    update_runtime_config(env, |config| {
+        config.native_token = addr.clone();
+    });
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -198,6 +261,9 @@ pub fn set_native_token(env: &Env, addr: &Address) {
 
 /// Returns `true` when the contract is paused.
 pub fn is_paused(env: &Env) -> bool {
+    if let Some(config) = get_runtime_config(env) {
+        return config.paused;
+    }
     env.storage()
         .instance()
         .get(&DataKey::Paused)
@@ -207,6 +273,9 @@ pub fn is_paused(env: &Env) -> bool {
 /// Sets the paused flag.
 pub fn set_paused(env: &Env, paused: bool) {
     env.storage().instance().set(&DataKey::Paused, &paused);
+    update_runtime_config(env, |config| {
+        config.paused = paused;
+    });
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -215,6 +284,9 @@ pub fn set_paused(env: &Env, paused: bool) {
 
 /// Returns the minimum allowed tip amount in stroops.
 pub fn get_min_tip_amount(env: &Env) -> i128 {
+    if let Some(config) = get_runtime_config(env) {
+        return config.min_tip_amount;
+    }
     env.storage()
         .instance()
         .get(&DataKey::MinTipAmount)
@@ -226,6 +298,9 @@ pub fn set_min_tip_amount(env: &Env, amount: i128) {
     env.storage()
         .instance()
         .set(&DataKey::MinTipAmount, &amount);
+    update_runtime_config(env, |config| {
+        config.min_tip_amount = amount;
+    });
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -238,6 +313,9 @@ pub fn set_min_tip_amount(env: &Env, amount: i128) {
 /// Panics if the contract is not yet initialised.
 #[allow(dead_code)]
 pub fn get_admin(env: &Env) -> Address {
+    if let Some(config) = get_runtime_config(env) {
+        return config.admin;
+    }
     env.storage()
         .instance()
         .get(&DataKey::Admin)
@@ -247,13 +325,14 @@ pub fn get_admin(env: &Env) -> Address {
 /// Overwrites the admin address.
 pub fn set_admin(env: &Env, admin: &Address) {
     env.storage().instance().set(&DataKey::Admin, admin);
+    update_runtime_config(env, |config| {
+        config.admin = admin.clone();
+    });
 }
 
 /// Pending admin change proposal, if any.
 pub fn get_pending_admin_change(env: &Env) -> Option<crate::types::AdminChangeProposal> {
-    env.storage()
-        .instance()
-        .get(&DataKey::PendingAdminChange)
+    env.storage().instance().get(&DataKey::PendingAdminChange)
 }
 
 pub fn set_pending_admin_change(env: &Env, proposal: &crate::types::AdminChangeProposal) {
@@ -263,7 +342,9 @@ pub fn set_pending_admin_change(env: &Env, proposal: &crate::types::AdminChangeP
 }
 
 pub fn remove_pending_admin_change(env: &Env) {
-    env.storage().instance().remove(&DataKey::PendingAdminChange);
+    env.storage()
+        .instance()
+        .remove(&DataKey::PendingAdminChange);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -353,6 +434,9 @@ pub fn set_version(env: &Env, version: u32) {
 
 /// Returns the withdrawal fee in basis points (100 bps = 1 %).
 pub fn get_fee_bps(env: &Env) -> u32 {
+    if let Some(config) = get_runtime_config(env) {
+        return config.fee_bps;
+    }
     env.storage()
         .instance()
         .get(&DataKey::FeePercent)
@@ -362,6 +446,9 @@ pub fn get_fee_bps(env: &Env) -> u32 {
 /// Sets the withdrawal fee in basis points.
 pub fn set_fee_bps(env: &Env, fee_bps: u32) {
     env.storage().instance().set(&DataKey::FeePercent, &fee_bps);
+    update_runtime_config(env, |config| {
+        config.fee_bps = fee_bps;
+    });
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -374,6 +461,9 @@ pub fn set_fee_bps(env: &Env, fee_bps: u32) {
 /// Panics if the contract is not yet initialised.
 #[allow(dead_code)]
 pub fn get_fee_collector(env: &Env) -> Address {
+    if let Some(config) = get_runtime_config(env) {
+        return config.fee_collector;
+    }
     env.storage()
         .instance()
         .get(&DataKey::FeeCollector)
@@ -383,6 +473,29 @@ pub fn get_fee_collector(env: &Env) -> Address {
 /// Sets the fee collector address.
 pub fn set_fee_collector(env: &Env, addr: &Address) {
     env.storage().instance().set(&DataKey::FeeCollector, addr);
+    update_runtime_config(env, |config| {
+        config.fee_collector = addr.clone();
+    });
+}
+
+pub fn get_runtime_config(env: &Env) -> Option<RuntimeConfig> {
+    env.storage().instance().get(&CacheKey::RuntimeConfig)
+}
+
+pub fn set_runtime_config(env: &Env, config: &RuntimeConfig) {
+    env.storage()
+        .instance()
+        .set(&CacheKey::RuntimeConfig, config);
+}
+
+fn update_runtime_config<F>(env: &Env, update: F)
+where
+    F: FnOnce(&mut RuntimeConfig),
+{
+    if let Some(mut config) = get_runtime_config(env) {
+        update(&mut config);
+        set_runtime_config(env, &config);
+    }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -406,6 +519,13 @@ pub fn get_profile(env: &Env, address: &Address) -> Profile {
         .persistent()
         .get(&DataKey::Profile(address.clone()))
         .expect("profile not found")
+}
+
+/// Returns the profile for `address`, or `None` when absent.
+pub fn get_profile_opt(env: &Env, address: &Address) -> Option<Profile> {
+    env.storage()
+        .persistent()
+        .get(&DataKey::Profile(address.clone()))
 }
 
 /// Persists (creates or updates) a profile, keyed by `profile.owner`.
@@ -516,7 +636,52 @@ pub fn increment_tip_count(env: &Env) -> u32 {
     env.storage()
         .instance()
         .set(&DataKey::TipCount, &(count + 1));
+    if let Some(mut state) = get_send_tip_state(env) {
+        state.tip_count = count + 1;
+        set_send_tip_state(env, &state);
+    }
     count
+}
+
+pub fn get_send_tip_state(env: &Env) -> Option<SendTipState> {
+    env.storage().instance().get(&CacheKey::SendTipState)
+}
+
+pub fn set_send_tip_state(env: &Env, state: &SendTipState) {
+    env.storage().instance().set(&CacheKey::SendTipState, state);
+}
+
+pub fn get_or_build_send_tip_state(env: &Env) -> SendTipState {
+    get_send_tip_state(env).unwrap_or(SendTipState {
+        tip_count: get_tip_count(env),
+        total_tips_volume: get_total_tips_volume(env),
+        stats_window_start: get_stats_window_start(env),
+        tips_last_24h: get_tips_last_24h(env),
+        volume_last_24h: get_volume_last_24h(env),
+        active_creators_30d: get_active_creators_30d(env),
+    })
+}
+
+pub fn apply_send_tip_state(env: &Env, state: &SendTipState) {
+    set_send_tip_state(env, state);
+    env.storage()
+        .instance()
+        .set(&DataKey::TipCount, &state.tip_count);
+    env.storage()
+        .instance()
+        .set(&DataKey::TotalTipsVolume, &state.total_tips_volume);
+    env.storage()
+        .instance()
+        .set(&DataKey::StatsWindowStart, &state.stats_window_start);
+    env.storage()
+        .instance()
+        .set(&DataKey::TipsLast24h, &state.tips_last_24h);
+    env.storage()
+        .instance()
+        .set(&DataKey::VolumeLast24h, &state.volume_last_24h);
+    env.storage()
+        .instance()
+        .set(&DataKey::ActiveCreators30d, &state.active_creators_30d);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -600,7 +765,11 @@ pub fn reset_creator_tip_index(env: &Env, creator: &Address) {
 // ──────────────────────────────────────────────────────────────────────────────
 
 /// Return the streak record for a supporter/creator pair, if any.
-pub fn get_streak(env: &Env, supporter: &Address, creator: &Address) -> Option<crate::types::Streak> {
+pub fn get_streak(
+    env: &Env,
+    supporter: &Address,
+    creator: &Address,
+) -> Option<crate::types::Streak> {
     env.storage()
         .persistent()
         .get(&DataKey::Streak(supporter.clone(), creator.clone()))
@@ -658,10 +827,14 @@ pub fn reset_tipper_tip_index(env: &Env, tipper: &Address) {
 // ──────────────────────────────────────────────────────────────────────────────
 
 /// Returns the leaderboard for a specific period.
-pub fn get_leaderboard(
-    env: &Env,
-    period: LeaderboardPeriod,
-) -> soroban_sdk::Vec<LeaderboardEntry> {
+pub fn get_leaderboard(env: &Env, period: LeaderboardPeriod) -> soroban_sdk::Vec<LeaderboardEntry> {
+    if let Some(boards) = get_leaderboard_set(env) {
+        return match period {
+            LeaderboardPeriod::AllTime => boards.all_time,
+            LeaderboardPeriod::Monthly => boards.monthly,
+            LeaderboardPeriod::Weekly => boards.weekly,
+        };
+    }
     env.storage()
         .instance()
         .get(&DataKey::Leaderboard(period))
@@ -677,10 +850,70 @@ pub fn set_leaderboard(
     env.storage()
         .instance()
         .set(&DataKey::Leaderboard(period), leaderboard);
+    let mut boards = get_leaderboard_set(env).unwrap_or_else(|| LeaderboardSet {
+        all_time: get_legacy_leaderboard(env, LeaderboardPeriod::AllTime),
+        monthly: get_legacy_leaderboard(env, LeaderboardPeriod::Monthly),
+        weekly: get_legacy_leaderboard(env, LeaderboardPeriod::Weekly),
+        monthly_reset_at: get_last_leaderboard_reset(env, LeaderboardPeriod::Monthly),
+        weekly_reset_at: get_last_leaderboard_reset(env, LeaderboardPeriod::Weekly),
+    });
+    match period {
+        LeaderboardPeriod::AllTime => boards.all_time = leaderboard.clone(),
+        LeaderboardPeriod::Monthly => boards.monthly = leaderboard.clone(),
+        LeaderboardPeriod::Weekly => boards.weekly = leaderboard.clone(),
+    }
+    set_leaderboard_set(env, &boards);
+}
+
+fn get_legacy_leaderboard(
+    env: &Env,
+    period: LeaderboardPeriod,
+) -> soroban_sdk::Vec<LeaderboardEntry> {
+    env.storage()
+        .instance()
+        .get(&DataKey::Leaderboard(period))
+        .unwrap_or(soroban_sdk::Vec::new(env))
+}
+
+pub fn get_leaderboard_set(env: &Env) -> Option<LeaderboardSet> {
+    env.storage().instance().get(&CacheKey::LeaderboardSet)
+}
+
+pub fn set_leaderboard_set(env: &Env, boards: &LeaderboardSet) {
+    env.storage()
+        .instance()
+        .set(&CacheKey::LeaderboardSet, boards);
+    env.storage().instance().set(
+        &DataKey::Leaderboard(LeaderboardPeriod::AllTime),
+        &boards.all_time,
+    );
+    env.storage().instance().set(
+        &DataKey::Leaderboard(LeaderboardPeriod::Monthly),
+        &boards.monthly,
+    );
+    env.storage().instance().set(
+        &DataKey::Leaderboard(LeaderboardPeriod::Weekly),
+        &boards.weekly,
+    );
+    env.storage().instance().set(
+        &DataKey::LastLeaderboardReset(LeaderboardPeriod::Monthly),
+        &boards.monthly_reset_at,
+    );
+    env.storage().instance().set(
+        &DataKey::LastLeaderboardReset(LeaderboardPeriod::Weekly),
+        &boards.weekly_reset_at,
+    );
 }
 
 /// Returns the timestamp of the last reset for a specific period.
 pub fn get_last_leaderboard_reset(env: &Env, period: LeaderboardPeriod) -> u64 {
+    if let Some(boards) = get_leaderboard_set(env) {
+        return match period {
+            LeaderboardPeriod::AllTime => 0,
+            LeaderboardPeriod::Monthly => boards.monthly_reset_at,
+            LeaderboardPeriod::Weekly => boards.weekly_reset_at,
+        };
+    }
     env.storage()
         .instance()
         .get(&DataKey::LastLeaderboardReset(period))
@@ -692,6 +925,14 @@ pub fn set_last_leaderboard_reset(env: &Env, period: LeaderboardPeriod, at: u64)
     env.storage()
         .instance()
         .set(&DataKey::LastLeaderboardReset(period), &at);
+    if let Some(mut boards) = get_leaderboard_set(env) {
+        match period {
+            LeaderboardPeriod::AllTime => {}
+            LeaderboardPeriod::Monthly => boards.monthly_reset_at = at,
+            LeaderboardPeriod::Weekly => boards.weekly_reset_at = at,
+        }
+        set_leaderboard_set(env, &boards);
+    }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -700,6 +941,9 @@ pub fn set_last_leaderboard_reset(env: &Env, period: LeaderboardPeriod, at: u64)
 
 /// Returns the current rate limit configuration.
 pub fn get_rate_limit_config(env: &Env) -> RateLimitConfig {
+    if let Some(config) = get_runtime_config(env) {
+        return config.rate_limit;
+    }
     env.storage()
         .instance()
         .get(&DataKey::RateLimitConfig)
@@ -714,6 +958,17 @@ pub fn set_rate_limit_config(env: &Env, config: &RateLimitConfig) {
     env.storage()
         .instance()
         .set(&DataKey::RateLimitConfig, config);
+    update_runtime_config(env, |runtime_config| {
+        runtime_config.rate_limit = config.clone();
+    });
+}
+
+pub fn bump_existing_profile_ttl(env: &Env, address: &Address) {
+    env.storage().persistent().extend_ttl(
+        &DataKey::Profile(address.clone()),
+        PROFILE_TTL_MIN_LEDGERS,
+        PROFILE_TTL_MAX_LEDGERS,
+    );
 }
 
 /// Returns the current rate limit status for an address.
@@ -735,15 +990,15 @@ pub fn set_rate_limit_status(env: &Env, address: &Address, status: &RateLimitSta
 // ──────────────────────────────────────────────────────────────────────────────
 
 /// Returns the tip volume received by a creator during a specific period.
-pub fn get_creator_period_volume(
-    env: &Env,
-    creator: &Address,
-    period: LeaderboardPeriod,
-) -> i128 {
+pub fn get_creator_period_volume(env: &Env, creator: &Address, period: LeaderboardPeriod) -> i128 {
     let start_at = get_last_leaderboard_reset(env, period);
     env.storage()
         .instance()
-        .get(&DataKey::CreatorPeriodVolume(creator.clone(), period, start_at))
+        .get(&DataKey::CreatorPeriodVolume(
+            creator.clone(),
+            period,
+            start_at,
+        ))
         .unwrap_or(0)
 }
 
@@ -757,10 +1012,71 @@ pub fn add_creator_period_volume(
     let start_at = get_last_leaderboard_reset(env, period);
     let current = get_creator_period_volume(env, creator, period);
     let next = current.saturating_add(amount);
+    env.storage().instance().set(
+        &DataKey::CreatorPeriodVolume(creator.clone(), period, start_at),
+        &next,
+    );
+    next
+}
+
+pub fn get_creator_period_volumes(env: &Env, creator: &Address) -> Option<CreatorPeriodVolumes> {
     env.storage()
         .instance()
-        .set(&DataKey::CreatorPeriodVolume(creator.clone(), period, start_at), &next);
-    next
+        .get(&CacheKey::CreatorPeriodVolumes(creator.clone()))
+}
+
+pub fn set_creator_period_volumes(env: &Env, creator: &Address, volumes: &CreatorPeriodVolumes) {
+    env.storage()
+        .instance()
+        .set(&CacheKey::CreatorPeriodVolumes(creator.clone()), volumes);
+    env.storage().instance().set(
+        &DataKey::CreatorPeriodVolume(
+            creator.clone(),
+            LeaderboardPeriod::Monthly,
+            volumes.monthly_start_at,
+        ),
+        &volumes.monthly,
+    );
+    env.storage().instance().set(
+        &DataKey::CreatorPeriodVolume(
+            creator.clone(),
+            LeaderboardPeriod::Weekly,
+            volumes.weekly_start_at,
+        ),
+        &volumes.weekly,
+    );
+}
+
+pub fn add_creator_period_volumes(
+    env: &Env,
+    creator: &Address,
+    monthly_start_at: u64,
+    weekly_start_at: u64,
+    amount: i128,
+) -> (i128, i128) {
+    let mut volumes = get_creator_period_volumes(env, creator).unwrap_or(CreatorPeriodVolumes {
+        monthly_start_at,
+        monthly: 0,
+        weekly_start_at,
+        weekly: 0,
+    });
+
+    if volumes.monthly_start_at != monthly_start_at {
+        volumes.monthly_start_at = monthly_start_at;
+        volumes.monthly = 0;
+    }
+    if volumes.weekly_start_at != weekly_start_at {
+        volumes.weekly_start_at = weekly_start_at;
+        volumes.weekly = 0;
+    }
+
+    volumes.monthly = volumes.monthly.saturating_add(amount);
+    volumes.weekly = volumes.weekly.saturating_add(amount);
+
+    let monthly = volumes.monthly;
+    let weekly = volumes.weekly;
+    set_creator_period_volumes(env, creator, &volumes);
+    (monthly, weekly)
 }
 
 /// Resets a creator's period volume (e.g. after a leaderboard reset).
@@ -769,7 +1085,11 @@ pub fn reset_creator_period_volume(env: &Env, creator: &Address, period: Leaderb
     let start_at = get_last_leaderboard_reset(env, period);
     env.storage()
         .instance()
-        .remove(&DataKey::CreatorPeriodVolume(creator.clone(), period, start_at));
+        .remove(&DataKey::CreatorPeriodVolume(
+            creator.clone(),
+            period,
+            start_at,
+        ));
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -825,6 +1145,10 @@ pub fn add_to_tips_volume(env: &Env, amount: i128) -> Result<(), ContractError> 
     env.storage()
         .instance()
         .set(&DataKey::TotalTipsVolume, &next);
+    if let Some(mut state) = get_send_tip_state(env) {
+        state.total_tips_volume = next;
+        set_send_tip_state(env, &state);
+    }
     Ok(())
 }
 
@@ -1221,6 +1545,10 @@ pub fn set_stats_window_start(env: &Env, timestamp: u64) {
     env.storage()
         .instance()
         .set(&DataKey::StatsWindowStart, &timestamp);
+    if let Some(mut state) = get_send_tip_state(env) {
+        state.stats_window_start = timestamp;
+        set_send_tip_state(env, &state);
+    }
 }
 
 pub fn get_tips_last_24h(env: &Env) -> u32 {
@@ -1232,6 +1560,10 @@ pub fn get_tips_last_24h(env: &Env) -> u32 {
 
 pub fn set_tips_last_24h(env: &Env, count: u32) {
     env.storage().instance().set(&DataKey::TipsLast24h, &count);
+    if let Some(mut state) = get_send_tip_state(env) {
+        state.tips_last_24h = count;
+        set_send_tip_state(env, &state);
+    }
 }
 
 pub fn get_volume_last_24h(env: &Env) -> i128 {
@@ -1245,6 +1577,10 @@ pub fn set_volume_last_24h(env: &Env, volume: i128) {
     env.storage()
         .instance()
         .set(&DataKey::VolumeLast24h, &volume);
+    if let Some(mut state) = get_send_tip_state(env) {
+        state.volume_last_24h = volume;
+        set_send_tip_state(env, &state);
+    }
 }
 
 pub fn get_active_creators_30d(env: &Env) -> u32 {
@@ -1258,6 +1594,10 @@ pub fn set_active_creators_30d(env: &Env, count: u32) {
     env.storage()
         .instance()
         .set(&DataKey::ActiveCreators30d, &count);
+    if let Some(mut state) = get_send_tip_state(env) {
+        state.active_creators_30d = count;
+        set_send_tip_state(env, &state);
+    }
 }
 
 #[allow(dead_code)]

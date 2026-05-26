@@ -4,13 +4,21 @@ import { StatsCardSkeleton } from "@/components/ui/StartCard";
 
 const DashboardStatsSkeleton: React.FC = () => {
   return (
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-busy="true">
+    <section
+      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-atomic="true"
+    >
       <StatsCardSkeleton />
       <StatsCardSkeleton />
       <StatsCardSkeleton />
       <div
         role="status"
+        aria-live="polite"
         aria-busy="true"
+        aria-atomic="true"
         className="flex flex-col gap-2 border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
       >
         <Skeleton variant="text" width="120px" height="14px" />
@@ -27,4 +35,3 @@ const DashboardStatsSkeleton: React.FC = () => {
 };
 
 export default DashboardStatsSkeleton;
-

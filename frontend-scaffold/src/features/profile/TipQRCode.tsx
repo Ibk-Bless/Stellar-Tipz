@@ -106,7 +106,7 @@ const TipQRCode: React.FC<TipQRCodeProps> = ({ username, className = "" }) => {
     <Card className={`space-y-5 ${className}`} padding="lg">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
             Tip page QR
           </p>
           <h2 className="mt-2 text-xl font-black uppercase">

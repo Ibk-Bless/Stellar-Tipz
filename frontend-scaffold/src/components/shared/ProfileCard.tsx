@@ -16,6 +16,7 @@ interface ProfileCardProps {
   creditScore?: number;
   totalTips?: string;
   streak?: number;
+  dataTourId?: string;
 }
 
 const ProfileCard: React.FC<ProfileCardProps> = ({
@@ -27,6 +28,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   creditScore,
   totalTips,
   streak,
+  dataTourId,
 }) => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const favorite = isFavorite(publicKey);
@@ -51,7 +53,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
                   toggleFavorite({ address: publicKey, username: handle });
                 }}
                 className={`p-1.5 rounded-full transition-colors ${
-                  favorite ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-500 hover:bg-gray-100'
+                  favorite ? 'text-red-500 bg-red-50' : 'text-gray-700 dark:text-gray-300 hover:text-red-500 hover:bg-gray-100'
                 }`}
                 aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
               >
@@ -79,6 +81,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           </div>
 
           <button
+            data-tour-id={dataTourId}
             onClick={onTip}
             className="w-full py-2 bg-black text-white text-xs font-black uppercase tracking-wider border-2 border-black hover:bg-gray-800 transition-colors"
           >
@@ -108,7 +111,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
       <div className="px-6 pb-6 text-center">
         <div className="relative -mt-12 mb-4">
           <div className="inline-flex items-center justify-center h-24 w-24 rounded-full border-4 border-white bg-gray-100 overflow-hidden shadow-sm">
-            <User className="h-12 w-12 text-gray-400" />
+            <User className="h-12 w-12 text-gray-700 dark:text-gray-300" />
           </div>
         </div>
         <h3 className="text-xl font-bold text-gray-900 mb-1">@{handle}</h3>
@@ -124,15 +127,16 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
             href={`https://stellar.expert/explorer/testnet/account/${publicKey}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+            className="p-1 text-gray-700 dark:text-gray-300 hover:text-blue-500 transition-colors"
           >
             <ExternalLink className="h-4 w-4" />
           </a>
         </div>
-        <p className="text-sm text-gray-500 leading-relaxed mb-6">
+        <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed mb-6">
           {bio || "This creator hasn't added a bio yet. Support their work by sending a tip!"}
         </p>
         <button
+          data-tour-id={dataTourId}
           onClick={onTip}
           className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-sm"
         >

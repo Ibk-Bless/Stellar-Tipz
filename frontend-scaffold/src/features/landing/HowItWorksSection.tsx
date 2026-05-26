@@ -64,7 +64,7 @@ const HowItWorksSection: React.FC = () => {
           HOW IT WORKS
         </motion.h2>
         <motion.p
-          className="text-gray-500 text-center mb-16 max-w-xl mx-auto"
+          className="text-gray-800 dark:text-gray-200 text-center mb-16 max-w-xl mx-auto"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -94,7 +94,7 @@ const HowItWorksSection: React.FC = () => {
                   </div>
                 </div>
                 <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed max-w-[200px]">
+                <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed max-w-[200px]">
                   {step.description}
                 </p>
               </motion.div>
@@ -139,7 +139,7 @@ const HowItWorksSection: React.FC = () => {
               </div>
               <div className="pt-1">
                 <h3 className="font-semibold text-base mb-1">{step.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
+                <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">
                   {step.description}
                 </p>
               </div>

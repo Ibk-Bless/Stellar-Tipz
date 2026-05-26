@@ -107,8 +107,8 @@ const TrendingCreatorCard: React.FC<TrendingCreatorCardProps> = ({
             {displayName}
           </p>
         )}
-        <p className="truncate text-sm font-bold text-gray-500">@{username}</p>
-        <p className="mt-0.5 text-xs font-bold uppercase tracking-wide text-gray-400">
+        <p className="truncate text-sm font-bold text-gray-800 dark:text-gray-200">@{username}</p>
+        <p className="mt-0.5 text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">
           {tierEmoji[tier]} {tier}
         </p>
       </div>
@@ -119,7 +119,7 @@ const TrendingCreatorCard: React.FC<TrendingCreatorCardProps> = ({
           hasWeeklyTips ? "" : "opacity-60"
         }`}
       >
-        <p className="mb-1 flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.15em] text-gray-500">
+        <p className="mb-1 flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.15em] text-gray-800 dark:text-gray-200">
           {isFallback || !hasWeeklyTips ? (
             <>
               <TrendingUp size={11} />

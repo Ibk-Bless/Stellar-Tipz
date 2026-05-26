@@ -20,6 +20,8 @@ const ToastItem = React.forwardRef<HTMLDivElement, { toast: Toast }>(({ toast },
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
       role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
       className="flex items-center gap-3 w-80 bg-white border border-gray-200 shadow-lg rounded-xl p-4 mb-3"
     >
       <div className="shrink-0">{icons[toast.type]}</div>
@@ -40,7 +42,7 @@ const ToastItem = React.forwardRef<HTMLDivElement, { toast: Toast }>(({ toast },
       </div>
       <button
         onClick={() => removeToast(toast.id)}
-        className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+        className="shrink-0 text-gray-700 dark:text-gray-300 hover:text-gray-600 transition-colors"
         aria-label="Close notification"
       >
         <X className="h-4 w-4" />
@@ -107,7 +109,7 @@ const ToastContainer: React.FC = () => {
   return (
     <div
       className={`fixed z-[9999] flex flex-col ${positionClass}`}
-      aria-live="polite"
+      aria-live="assertive"
       aria-atomic="true"
     >
       <AnimatePresence mode="popLayout">

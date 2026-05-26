@@ -109,7 +109,7 @@ const CreatorSearch: React.FC<CreatorSearchProps> = ({
   return (
     <div ref={containerRef} className="relative w-full">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700 dark:text-gray-300" />
         <input
           type="text"
           value={query}
@@ -121,14 +121,14 @@ const CreatorSearch: React.FC<CreatorSearchProps> = ({
           className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
         />
         {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700 dark:text-gray-300 animate-spin" />
         )}
       </div>
 
       {showDropdown && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center py-6 text-gray-400 text-sm">
+            <div className="flex items-center justify-center py-6 text-gray-700 dark:text-gray-300 text-sm">
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
               Searching...
             </div>
@@ -144,14 +144,14 @@ const CreatorSearch: React.FC<CreatorSearchProps> = ({
                   <p className="font-medium text-sm truncate">
                     {profile.displayName || profile.username}
                   </p>
-                  <p className="text-xs text-gray-400 truncate">
+                  <p className="text-xs text-gray-700 dark:text-gray-300 truncate">
                     @{profile.username} · {truncateString(profile.owner)}
                   </p>
                 </div>
               </button>
             ))
           ) : hasSearched ? (
-            <div className="py-6 text-center text-gray-400 text-sm">
+            <div className="py-6 text-center text-gray-700 dark:text-gray-300 text-sm">
               No results found
             </div>
           ) : null}

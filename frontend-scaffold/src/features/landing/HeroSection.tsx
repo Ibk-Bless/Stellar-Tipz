@@ -69,6 +69,7 @@ const HeroSection: React.FC = () => {
         >
           <button
             className="btn-brutalist group text-lg"
+            data-tour-id="tour-wallet-connect"
             onClick={() => connect()}
           >
             {t("landing.hero.getStarted")}

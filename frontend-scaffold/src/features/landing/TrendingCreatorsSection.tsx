@@ -109,7 +109,7 @@ const TrendingCreatorsSection: React.FC = () => {
 
         {/* ── Error notice (non-fatal, still shows fallback data) ── */}
         {error && creators.length > 0 && (
-          <p className="text-xs font-bold text-gray-400">
+          <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
             Could not load weekly data — showing overall rankings.
           </p>
         )}

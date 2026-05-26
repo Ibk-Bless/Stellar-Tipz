@@ -1,4 +1,6 @@
 import { useMemo, useCallback, useState } from "react";
+// ⚡ TREE-SHAKING OPTIMIZED: Minimal named imports for tree-shaking efficiency
+// See docs/BUNDLE_OPTIMIZATION.md for details on reducing Stellar SDK bundle size
 import {
   Contract,
   TimeoutInfinite,

@@ -1,8 +1,8 @@
 //! Input validation functions for the Tipz contract.
 
-use soroban_sdk::{Address, Env, String};
 use crate::errors::ContractError;
 use crate::storage;
+use soroban_sdk::{Address, Env, String};
 
 /// Validate a username format.
 /// - 3 to 32 characters
@@ -136,7 +136,7 @@ pub fn validate_x_handle(handle: &String) -> Result<(), ContractError> {
 
     let mut buf = [0u8; 17]; // max 1 + 15
     if len > 16 {
-         return Err(ContractError::InvalidUsername);
+        return Err(ContractError::InvalidUsername);
     }
     handle.copy_into_slice(&mut buf[..len as usize]);
 
@@ -149,7 +149,11 @@ pub fn validate_x_handle(handle: &String) -> Result<(), ContractError> {
 
     for i in start..len as usize {
         let c = buf[i];
-        if !((c >= b'a' && c <= b'z') || (c >= b'A' && c <= b'Z') || (c >= b'0' && c <= b'9') || c == b'_') {
+        if !((c >= b'a' && c <= b'z')
+            || (c >= b'A' && c <= b'Z')
+            || (c >= b'0' && c <= b'9')
+            || c == b'_')
+        {
             return Err(ContractError::InvalidUsername);
         }
     }
@@ -165,14 +169,46 @@ pub fn check_rate_limit(env: &Env, address: &Address) -> Result<(), ContractErro
     }
 
     let config = storage::get_rate_limit_config(env);
-    let mut status = storage::get_rate_limit_status(env, address).unwrap_or(crate::types::RateLimitStatus {
-        count: 0,
-        last_op_time: 0,
-    });
+    let mut status =
+        storage::get_rate_limit_status(env, address).unwrap_or(crate::types::RateLimitStatus {
+            count: 0,
+            last_op_time: 0,
+        });
 
     let now = env.ledger().timestamp();
     if now >= status.last_op_time.saturating_add(config.window_secs) {
         // Reset window
+        status.count = 1;
+        status.last_op_time = now;
+    } else {
+        if status.count >= config.max_ops {
+            return Err(ContractError::RateLimitExceeded);
+        }
+        status.count += 1;
+    }
+
+    storage::set_rate_limit_status(env, address, &status);
+    Ok(())
+}
+
+pub fn check_rate_limit_with_config(
+    env: &Env,
+    address: &Address,
+    admin: &Address,
+    config: &crate::types::RateLimitConfig,
+) -> Result<(), ContractError> {
+    if address == admin {
+        return Ok(());
+    }
+
+    let mut status =
+        storage::get_rate_limit_status(env, address).unwrap_or(crate::types::RateLimitStatus {
+            count: 0,
+            last_op_time: 0,
+        });
+
+    let now = env.ledger().timestamp();
+    if now >= status.last_op_time.saturating_add(config.window_secs) {
         status.count = 1;
         status.last_op_time = now;
     } else {

@@ -11,7 +11,6 @@ const PageContainer: React.FC<PageContainerProps> = ({
   children,
   maxWidth = 'lg',
   className = '',
-  ariaLabel = 'Page content',
   ...props
 }) => {
   const widths: Record<string, string> = {
@@ -25,7 +24,6 @@ const PageContainer: React.FC<PageContainerProps> = ({
     <main
       id="main-content"
       tabIndex={-1}
-      aria-label={ariaLabel}
       className={`${widths[maxWidth]} mx-auto px-4 py-8 ${className} focus:outline-none`}
       {...props}
     >

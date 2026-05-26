@@ -1,4 +1,5 @@
 import React from "react";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 
 type SkeletonVariant = "text" | "rect" | "circle";
 
@@ -29,6 +30,9 @@ const Skeleton: React.FC<SkeletonProps> = ({
   const radius =
     variant === "circle" ? "9999px" : variant === "text" ? "8px" : "12px";
 
+  const shouldReduceMotion = useReducedMotion();
+  const animationStyle = shouldReduceMotion ? 'none' : 'st_shimmer 1.2s ease-in-out infinite';
+
   return (
     <>
       <style>
@@ -40,7 +44,6 @@ const Skeleton: React.FC<SkeletonProps> = ({
           .st-skeleton {
             background: linear-gradient(90deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.12) 50%, rgba(0,0,0,0.06) 100%);
             background-size: 200% 100%;
-            animation: st_shimmer 1.2s ease-in-out infinite;
           }
           @media (prefers-reduced-motion: reduce) {
             .st-skeleton { animation: none; }
@@ -54,6 +57,7 @@ const Skeleton: React.FC<SkeletonProps> = ({
           width: toCssSize(width),
           height: toCssSize(height),
           borderRadius: radius,
+          animation: animationStyle,
           ...style,
         }}
       />

@@ -96,7 +96,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, error, disab
               </Button>
             </div>
           </div>
-          <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">
+          <p className="text-[10px] text-gray-800 dark:text-gray-200 font-black uppercase tracking-[0.2em]">
             Supporting direct URLs and IPFS CID hashes
           </p>
         </div>

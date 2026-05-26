@@ -51,7 +51,7 @@ const TipConfirm: React.FC<TipConfirmProps> = ({
               <p className="truncate text-sm font-black">
                 {creator.displayName || creator.username}
               </p>
-              <p className="text-xs font-bold text-gray-500">
+              <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
                 @{creator.username}
               </p>
             </div>
@@ -60,14 +60,14 @@ const TipConfirm: React.FC<TipConfirmProps> = ({
           {/* Detail rows */}
           <dl className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
-              <dt className="font-bold uppercase tracking-wide text-gray-500 text-xs">
+              <dt className="font-bold uppercase tracking-wide text-gray-800 dark:text-gray-200 text-xs">
                 Amount
               </dt>
               <dd className="font-black tabular-nums">{amount} XLM</dd>
             </div>
 
             <div className="flex items-start justify-between gap-4">
-              <dt className="flex-shrink-0 font-bold uppercase tracking-wide text-gray-500 text-xs">
+              <dt className="flex-shrink-0 font-bold uppercase tracking-wide text-gray-800 dark:text-gray-200 text-xs">
                 Message
               </dt>
               <dd
@@ -79,10 +79,10 @@ const TipConfirm: React.FC<TipConfirmProps> = ({
             </div>
 
             <div className="flex items-center justify-between border-t border-dashed border-gray-300 pt-2">
-              <dt className="font-bold uppercase tracking-wide text-gray-500 text-xs">
+              <dt className="font-bold uppercase tracking-wide text-gray-800 dark:text-gray-200 text-xs">
                 Est. TX Fee
               </dt>
-              <dd className="font-bold text-gray-500 tabular-nums">
+              <dd className="font-bold text-gray-800 dark:text-gray-200 tabular-nums">
                 ~{ESTIMATED_TX_FEE} XLM
               </dd>
             </div>

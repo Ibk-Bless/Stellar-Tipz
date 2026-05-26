@@ -65,7 +65,7 @@ const LeaderboardRow: React.FC<LeaderboardRowProps> = ({ entry, rank }) => {
                   toggleFavorite({ address: entry.address, username: entry.username });
                 }}
                 className={`p-1 rounded-full transition-colors ${
-                  favorite ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-500 hover:bg-gray-100'
+                  favorite ? 'text-red-500 bg-red-50' : 'text-gray-700 dark:text-gray-300 hover:text-red-500 hover:bg-gray-100'
                 }`}
                 aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
               >

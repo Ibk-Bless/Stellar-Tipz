@@ -74,7 +74,12 @@ export const VerificationRequestForm: React.FC<VerificationRequestFormProps> = (
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
+        <div
+          className="flex items-center gap-2 p-3 bg-red-50 rounded-lg"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+        >
           <AlertCircle className="w-4 h-4 text-red-600" />
           <p className="text-sm text-red-600">{error}</p>
         </div>

@@ -57,7 +57,7 @@ const WalletRow: React.FC<WalletRowProps> = ({
           <p className="text-xs font-black uppercase tracking-wide">
             {label}
           </p>
-          <p className="text-[10px] font-semibold uppercase text-gray-500">
+          <p className="text-[10px] font-semibold uppercase text-gray-800 dark:text-gray-200">
             {wallet.walletType}
             {" · "}
             {loading ? "…" : balance !== null ? `${balance} XLM` : "—"}
@@ -67,7 +67,7 @@ const WalletRow: React.FC<WalletRowProps> = ({
       <button
         type="button"
         aria-label={`Remove wallet ${label}`}
-        className="shrink-0 p-1 text-gray-400 transition-colors hover:text-red-600"
+        className="shrink-0 p-1 text-gray-700 dark:text-gray-300 transition-colors hover:text-red-600"
         onClick={(e) => {
           e.stopPropagation();
           onRemove(wallet.publicKey);
@@ -158,7 +158,7 @@ const WalletSwitcher: React.FC<WalletSwitcherProps> = ({ onAddWallet }) => {
         >
           {/* Header */}
           <div className="border-b-2 border-black px-3 py-2 dark:border-white">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
               Connected wallets
             </p>
           </div>

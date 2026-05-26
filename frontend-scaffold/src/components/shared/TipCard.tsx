@@ -60,7 +60,7 @@ const TipCard: React.FC<TipCardProps> = ({
               size="md"
             />
             <div className="min-w-0">
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
                 {primaryLabel}
               </p>
               <p className="truncate text-sm font-black">
@@ -91,7 +91,7 @@ const TipCard: React.FC<TipCardProps> = ({
         </p>
 
         <div className="flex items-center justify-between border-t-2 border-dashed border-black pt-3">
-          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
             Tip activity
           </span>
           <span className="text-xs font-bold">

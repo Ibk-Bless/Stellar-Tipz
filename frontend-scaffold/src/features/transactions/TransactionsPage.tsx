@@ -119,7 +119,7 @@ const TransactionsPage: React.FC = () => {
       {/* ── Header ── */}
       <section aria-labelledby="transactions-heading" className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
             Wallet activity
           </p>
           <h1 id="transactions-heading" className="mt-2 flex items-center gap-3 text-4xl font-black uppercase">
@@ -240,7 +240,7 @@ const TransactionsPage: React.FC = () => {
 
         {/* End of list */}
         {!hasMore && filtered.length > 0 && !loading && (
-          <p className="text-center text-xs font-bold uppercase tracking-widest text-gray-400 py-4">
+          <p className="text-center text-xs font-bold uppercase tracking-widest text-gray-700 dark:text-gray-300 py-4">
             — End of history —
           </p>
         )}
@@ -253,7 +253,7 @@ const TransactionsPage: React.FC = () => {
 const PageHeader: React.FC = () => (
   <section aria-labelledby="transactions-heading" className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
     <div>
-      <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+      <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
         Wallet activity
       </p>
       <h1 id="transactions-heading" className="mt-2 flex items-center gap-3 text-4xl font-black uppercase">

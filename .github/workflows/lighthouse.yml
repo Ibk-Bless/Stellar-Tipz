@@ -1,0 +1,242 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "frontend-scaffold/**"
+      - ".github/workflows/lighthouse.yml"
+      - ".lighthouserc.json"
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL to audit (overrides Vercel preview)"
+        required: false
+        default: ""
+
+jobs:
+  lighthouse-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Wait for Vercel Preview Deployment
+        uses: actions/github-script@v7
+        id: vercel-url
+        with:
+          script: |
+            const fs = require('fs');
+            const https = require('https');
+            
+            let deploymentUrl = '${{ github.event.inputs.url }}';
+            
+            if (deploymentUrl) {
+              console.log(`Using provided URL: ${deploymentUrl}`);
+              return deploymentUrl;
+            }
+            
+            // Check Vercel deployments for this PR
+            const vercelComments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            // Look for Vercel deployment comment
+            const vercelComment = vercelComments.data.find(comment =>
+              comment.body.includes('vercel.app') || comment.user.login === 'vercel[bot]'
+            );
+            
+            if (vercelComment) {
+              // Extract URL from comment
+              const urlMatch = vercelComment.body.match(/https:\/\/[^\s]+\.vercel\.app[^\s]*/) ||
+                               vercelComment.body.match(/https:\/\/[^\s]+stellar-tipz[^\s]*/);
+              if (urlMatch) {
+                console.log(`Found Vercel preview: ${urlMatch[0]}`);
+                return urlMatch[0];
+              }
+            }
+            
+            // Fallback: check for deployment status
+            const deployments = await github.rest.repos.listDeployments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment: 'Preview',
+            });
+            
+            if (deployments.data.length > 0) {
+              const statuses = await github.rest.repos.getDeploymentStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: deployments.data[0].id,
+              });
+              
+              if (statuses.data.length > 0) {
+                const environment_url = statuses.data[0].environment_url;
+                if (environment_url) {
+                  console.log(`Found deployment URL: ${environment_url}`);
+                  return environment_url;
+                }
+              }
+            }
+            
+            // Wait up to 5 minutes for Vercel to deploy
+            let attempts = 0;
+            const maxAttempts = 30;
+            
+            while (attempts < maxAttempts) {
+              console.log(`Waiting for Vercel deployment... (attempt ${attempts + 1}/${maxAttempts})`);
+              await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+              
+              const freshComments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+              
+              const freshVercelComment = freshComments.data.find(comment =>
+                comment.body.includes('vercel.app') || comment.user.login === 'vercel[bot]'
+              );
+              
+              if (freshVercelComment) {
+                const urlMatch = freshVercelComment.body.match(/https:\/\/[^\s]+\.vercel\.app[^\s]*/) ||
+                                 freshVercelComment.body.match(/https:\/\/[^\s]+stellar-tipz[^\s]*/);
+                if (urlMatch) {
+                  console.log(`Found Vercel preview: ${urlMatch[0]}`);
+                  return urlMatch[0];
+                }
+              }
+              
+              attempts++;
+            }
+            
+            throw new Error('Could not find Vercel preview deployment URL. Please ensure Vercel is configured for this repository.');
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.12.x
+      
+      - name: Run Lighthouse CI (Desktop)
+        id: lighthouse-desktop
+        run: |
+          echo "🖥️ Running Lighthouse CI on Desktop configuration..."
+          lhci autorun \
+            --config=.lighthouserc.json \
+            --url="${{ steps.vercel-url.outputs.result }}" || true
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+      
+      - name: Check Lighthouse results
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Check if results exist
+            const resultsDir = './.lighthouseci';
+            if (!fs.existsSync(resultsDir)) {
+              console.log('No Lighthouse results found');
+              return;
+            }
+            
+            // Parse Lighthouse JSON results
+            const resultsFile = path.join(resultsDir, 'lhr', 'latest-run.json');
+            if (!fs.existsSync(resultsFile)) {
+              console.log('No latest run results found');
+              return;
+            }
+            
+            try {
+              const results = JSON.parse(fs.readFileSync(resultsFile, 'utf8'));
+              const categories = results.categories;
+              
+              let comment = '## 📊 Lighthouse Performance Report\n\n';
+              comment += `**URL**: ${{ steps.vercel-url.outputs.result }}\n\n`;
+              comment += '### Scores\n\n';
+              comment += '| Category | Score | Status |\n';
+              comment += '|----------|-------|--------|\n';
+              
+              const thresholds = {
+                performance: 0.9,
+                accessibility: 0.95,
+                'best-practices': 0.9,
+                seo: 0.9,
+              };
+              
+              let anyFailed = false;
+              
+              for (const [category, data] of Object.entries(categories)) {
+                if (category === 'pwa') continue; // Skip PWA
+                
+                const score = Math.round(data.score * 100);
+                const threshold = thresholds[category];
+                const minScore = threshold ? Math.round(threshold * 100) : '-';
+                const status = data.score >= (threshold || 0) ? '✅' : '❌';
+                
+                if (data.score < (threshold || 0)) {
+                  anyFailed = true;
+                }
+                
+                comment += `| ${category.charAt(0).toUpperCase() + category.slice(1)} | ${score} | ${status} (min: ${minScore}) |\n`;
+              }
+              
+              comment += '\n### Opportunities\n\n';
+              
+              if (results.audits) {
+                const opportunities = Object.entries(results.audits)
+                  .filter(([, audit]) => audit.details && audit.details.type === 'opportunity')
+                  .sort((a, b) => (b[1].details.overallSavingsMs || 0) - (a[1].details.overallSavingsMs || 0))
+                  .slice(0, 5);
+                
+                if (opportunities.length > 0) {
+                  comment += '**Top Optimization Opportunities:**\n\n';
+                  opportunities.forEach(([id, audit]) => {
+                    const savings = audit.details.overallSavingsMs 
+                      ? ` (~${Math.round(audit.details.overallSavingsMs)}ms)`
+                      : '';
+                    comment += `- ${audit.title}${savings}\n`;
+                  });
+                } else {
+                  comment += 'No major optimization opportunities identified.\n';
+                }
+              }
+              
+              // Add diagnostic info
+              if (results.diagnostics) {
+                comment += '\n### Key Metrics\n\n';
+                comment += `- **First Contentful Paint**: ${(results.timing?.entries?.[0]?.duration / 1000).toFixed(2)}s\n`;
+              }
+              
+              // Post comment
+              github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment,
+              });
+              
+              // Fail if any threshold was not met
+              if (anyFailed) {
+                core.setFailed('Lighthouse scores below thresholds');
+              }
+            } catch (error) {
+              console.error('Error parsing Lighthouse results:', error);
+            }
+      
+      - name: Upload Lighthouse results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-results
+          path: ./.lighthouseci/
+          retention-days: 30

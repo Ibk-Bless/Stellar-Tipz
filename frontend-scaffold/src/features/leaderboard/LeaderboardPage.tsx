@@ -29,6 +29,12 @@ const LeaderboardPage: React.FC = () => {
     return entries.slice(startIndex, startIndex + PAGE_SIZE);
   }, [entries, currentPage]);
 
+  const leaderboardAnnouncement = error
+    ? `Leaderboard failed to load: ${categorizeError(error).message}`
+    : entries.length === 0
+    ? "Leaderboard loaded with no creators yet."
+    : `Leaderboard updated. Showing page ${currentPage} of ${totalPages} with ${entries.length} creators.`;
+
   if (loading && entries.length === 0 && !error) {
     return <LeaderboardSkeleton count={PAGE_SIZE} />;
   }
@@ -94,7 +100,7 @@ const LeaderboardPage: React.FC = () => {
           <div className="overflow-x-auto">
             {entries.length === 0 ? (
               <div className="text-center py-20 border-2 border-dashed border-black">
-                <p className="font-black uppercase text-gray-500">No creators found on the leaderboard yet.</p>
+                <p className="font-black uppercase text-gray-800 dark:text-gray-200">No creators found on the leaderboard yet.</p>
               </div>
             ) : (
               <table className="min-w-full border-collapse">

@@ -11,6 +11,7 @@ interface Settings {
   currency: 'USD' | 'EUR' | 'XLM';
   publicProfile: boolean;
   showOnLeaderboard: boolean;
+  reduceMotion: ReduceMotionPreference;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -22,6 +23,7 @@ const DEFAULT_SETTINGS: Settings = {
   currency: 'USD',
   publicProfile: true,
   showOnLeaderboard: true,
+  reduceMotion: 'auto',
 };
 
 export const SettingsPage: React.FC = () => {
@@ -45,6 +47,7 @@ export const SettingsPage: React.FC = () => {
     setIsSaving(true);
     try {
       localStorage.setItem('tipz_settings', JSON.stringify(settings));
+      notifyReducedMotionSettingsChanged();
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } finally {
@@ -56,6 +59,7 @@ export const SettingsPage: React.FC = () => {
     if (window.confirm('Are you sure you want to reset all settings to defaults?')) {
       setSettings(DEFAULT_SETTINGS);
       localStorage.removeItem('tipz_settings');
+      notifyReducedMotionSettingsChanged();
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     }
@@ -178,6 +182,68 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
         </section>
+
+        {/* Motion Section */}
+        <div className="bg-white rounded-lg shadow mb-6">
+          <div className="p-6 border-b">
+            <div className="flex items-center gap-3 mb-4">
+              <RotateCcw className="w-5 h-5 text-teal-600" />
+              <h2 className="text-xl font-semibold">Motion</h2>
+            </div>
+            <p className="text-sm text-gray-600">
+              Respect your motion preferences for page transitions and animations.
+            </p>
+          </div>
+
+          <div className="p-6 space-y-3">
+            <label className="flex items-center justify-between gap-3 border-2 border-black px-3 py-2">
+              <span className="text-sm font-medium">Use device motion preference</span>
+              <input
+                type="radio"
+                name="reduceMotion"
+                value="auto"
+                checked={settings.reduceMotion === 'auto'}
+                onChange={() => handleChange('reduceMotion', 'auto')}
+                className="h-4 w-4 border-2 border-black accent-black"
+              />
+            </label>
+            <label className="flex items-center justify-between gap-3 border-2 border-black px-3 py-2">
+              <span className="text-sm font-medium">Always reduce motion</span>
+              <input
+                type="radio"
+                name="reduceMotion"
+                value="always"
+                checked={settings.reduceMotion === 'always'}
+                onChange={() => handleChange('reduceMotion', 'always')}
+                className="h-4 w-4 border-2 border-black accent-black"
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* Onboarding Section */}
+        <div className="bg-white rounded-lg shadow mb-6">
+          <div className="p-6 border-b">
+            <div className="flex items-center gap-3 mb-4">
+              <Palette className="w-5 h-5 text-teal-600" />
+              <h2 className="text-xl font-semibold">Onboarding</h2>
+            </div>
+            <p className="text-sm text-gray-600">
+              Replay the guided tour anytime from your settings.
+            </p>
+          </div>
+
+          <div className="p-6">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => startOnboardingTour()}
+            >
+              Replay onboarding tour
+            </Button>
+          </div>
+        </div>
 
         {/* Privacy Section */}
         <section role="region" aria-labelledby="privacy-heading" className="bg-white rounded-lg shadow mb-6">

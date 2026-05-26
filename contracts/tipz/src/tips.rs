@@ -27,6 +27,29 @@ pub fn store_tip(
     is_anonymous: bool,
 ) -> u32 {
     let tip_id = storage::increment_tip_count(env);
+    store_tip_with_id(
+        env,
+        tip_id,
+        sender,
+        benefactor,
+        creator,
+        amount,
+        message,
+        is_anonymous,
+    );
+    tip_id
+}
+
+fn store_tip_with_id(
+    env: &Env,
+    tip_id: u32,
+    sender: &Address,
+    benefactor: Option<Address>,
+    creator: &Address,
+    amount: i128,
+    message: String,
+    is_anonymous: bool,
+) {
     let key = DataKey::Tip(tip_id);
     let tip = Tip {
         id: tip_id,
@@ -45,8 +68,6 @@ pub fn store_tip(
 
     env.storage().temporary().set(&key, &tip);
     storage::set_tip_ttl(env, &key);
-
-    tip_id
 }
 
 /// Retrieve a single tip by its ID.
@@ -131,31 +152,35 @@ pub fn send_tip(
     is_anonymous: bool,
 ) -> Result<(), ContractError> {
     storage::extend_instance_ttl(env);
-    crate::admin::require_not_paused(env)?;
+    let config = storage::get_runtime_config(env).ok_or(ContractError::NotInitialized)?;
+    if config.paused {
+        return Err(ContractError::ContractPaused);
+    }
     tipper.require_auth();
-    crate::validation::check_rate_limit(env, tipper)?;
+    crate::validation::check_rate_limit_with_config(
+        env,
+        tipper,
+        &config.admin,
+        &config.rate_limit,
+    )?;
 
-    if !storage::has_profile(env, creator) {
-        return Err(ContractError::NotRegistered);
+    let mut profile = storage::get_profile_opt(env, creator).ok_or(ContractError::NotRegistered)?;
+
+    if tipper == creator {
+        return Err(ContractError::CannotTipSelf);
     }
 
     if storage::is_profile_deactivated(env, creator) {
         return Err(ContractError::ProfileDeactivated);
     }
 
-    if tipper == creator {
-        return Err(ContractError::CannotTipSelf);
-    }
-
-    let min_tip = storage::get_min_tip_amount(env);
-    validate_tip_amount(amount, min_tip)?;
+    validate_tip_amount(amount, config.min_tip_amount)?;
     validate_message(message)?;
 
     let contract_address = env.current_contract_address();
     // Security: native SAC transfer has no callback path into this contract.
-    token::transfer_xlm(env, tipper, &contract_address, amount)?;
+    token::transfer_xlm_with_token(env, &config.native_token, tipper, &contract_address, amount)?;
 
-    let mut profile = storage::get_profile(env, creator);
     profile.balance += amount;
     profile.total_tips_received += amount;
     profile.total_tips_count += 1;
@@ -168,23 +193,46 @@ pub fn send_tip(
         credit::calculate_credit_score_with_streak(env, &profile, env.ledger().timestamp());
 
     storage::set_profile(env, &profile);
-    leaderboard::update_all_leaderboards(env, &profile, amount);
+    leaderboard::update_all_leaderboards_for_active(env, &profile, amount);
 
     // Bump TTL for both Profile and UsernameToAddress together.
-    storage::bump_profile_ttl(env, creator);
+    storage::bump_existing_profile_ttl(env, creator);
     storage::bump_username_ttl(env, &profile.username);
 
-    let tip_id = store_tip(env, tipper, None, creator, amount, message.clone(), is_anonymous);
+    let mut tip_state = storage::get_or_build_send_tip_state(env);
+    let tip_id = tip_state.tip_count;
+    tip_state.tip_count += 1;
+    tip_state.total_tips_volume = tip_state
+        .total_tips_volume
+        .checked_add(amount)
+        .ok_or(ContractError::OverflowError)?;
+
+    let now = env.ledger().timestamp();
+    if now - tip_state.stats_window_start > 86400 {
+        tip_state.stats_window_start = now;
+        tip_state.tips_last_24h = 1;
+        tip_state.volume_last_24h = amount;
+    } else {
+        tip_state.tips_last_24h += 1;
+        tip_state.volume_last_24h += amount;
+    }
+
+    store_tip_with_id(
+        env,
+        tip_id,
+        tipper,
+        None,
+        creator,
+        amount,
+        message.clone(),
+        is_anonymous,
+    );
     storage::add_tipper_tip(env, tipper, tip_id);
     storage::add_creator_tip(env, creator, tip_id);
-    let timestamp = env.ledger().timestamp();
+    let timestamp = now;
 
-    // Security: checked accumulation prevents silent i128 overflow.
-    storage::add_to_tips_volume(env, amount)?;
-
-    // Update 24h stats
-    crate::stats::update_24h_stats(env, amount);
-    crate::stats::mark_creator_active(env, creator);
+    storage::apply_send_tip_state(env, &tip_state);
+    storage::set_creator_last_active(env, creator, now);
 
     emit_tip_sent(
         env,
@@ -247,7 +295,15 @@ pub fn send_tip_on_behalf(
     storage::bump_profile_ttl(env, creator);
     storage::bump_username_ttl(env, &profile.username);
 
-    let tip_id = store_tip(env, sender, Some(on_behalf_of.clone()), creator, amount, message.clone(), false);
+    let tip_id = store_tip(
+        env,
+        sender,
+        Some(on_behalf_of.clone()),
+        creator,
+        amount,
+        message.clone(),
+        false,
+    );
     storage::add_tipper_tip(env, sender, tip_id);
     storage::add_tipper_tip(env, on_behalf_of, tip_id); // Also show in benefactor's history
     storage::add_creator_tip(env, creator, tip_id);
@@ -258,14 +314,7 @@ pub fn send_tip_on_behalf(
     crate::stats::mark_creator_active(env, creator);
 
     emit_tip_sent(
-        env,
-        tip_id,
-        sender,
-        creator,
-        amount,
-        message,
-        timestamp,
-        false,
+        env, tip_id, sender, creator, amount, message, timestamp, false,
     );
 
     Ok(())

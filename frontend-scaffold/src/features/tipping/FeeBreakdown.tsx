@@ -29,7 +29,7 @@ const FeeBreakdown: React.FC<FeeBreakdownProps> = ({
         <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-600">
           Payment summary
         </p>
-        <p className="text-[11px] font-bold text-gray-500">
+        <p className="text-[11px] font-bold text-gray-800 dark:text-gray-200">
           Estimated before signing
         </p>
       </div>

@@ -14,7 +14,8 @@ const Input: React.FC<InputProps> = ({
   id,
   ...props
 }) => {
-  const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const generatedId = React.useId();
+  const inputId = id || label?.toLowerCase().replace(/\s+/g, '-') || generatedId;
   const errorId = error ? `${inputId}-error` : undefined;
   const helperTextId = helperText ? `${inputId}-helper` : undefined;
   
@@ -35,7 +36,7 @@ const Input: React.FC<InputProps> = ({
         id={inputId}
         className={`w-full px-4 py-3 border-2 bg-white text-black font-medium
           focus:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus:shadow-brutalist
-          placeholder:text-gray-400 ${
+          placeholder:text-gray-700 dark:text-gray-300 ${
             error ? 'border-red-500' : 'border-black'
           } ${className}`}
         aria-invalid={error ? 'true' : 'false'}
@@ -43,7 +44,12 @@ const Input: React.FC<InputProps> = ({
         {...props}
       />
       {error && (
-        <p id={errorId} className="mt-1 text-sm text-red-500 font-medium">
+        <p
+          id={errorId}
+          role="alert"
+          aria-live="assertive"
+          className="mt-1 text-sm text-red-500 font-medium"
+        >
           {error}
         </p>
       )}

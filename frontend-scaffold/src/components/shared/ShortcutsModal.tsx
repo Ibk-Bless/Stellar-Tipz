@@ -14,7 +14,7 @@ const ShortcutRow: React.FC<ShortcutRowProps> = ({ keys, description }) => (
     <div className="flex shrink-0 items-center gap-1">
       {keys.map((k, i) => (
         <React.Fragment key={k}>
-          {i > 0 && <span className="text-xs font-bold text-gray-400">+</span>}
+          {i > 0 && <span className="text-xs font-bold text-gray-700 dark:text-gray-300">+</span>}
           <kbd className="inline-flex items-center justify-center border-2 border-black bg-white px-2 py-0.5 font-mono text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             {k}
           </kbd>
@@ -59,7 +59,7 @@ const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose }) => {
       <div className="space-y-6">
         {sections.map((section) => (
           <div key={section.heading}>
-            <p className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+            <p className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
               {section.heading}
             </p>
             <div className="border-2 border-black bg-white px-4">
@@ -74,7 +74,7 @@ const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose }) => {
           </div>
         ))}
 
-        <p className="flex items-center gap-2 text-xs font-medium text-gray-500">
+        <p className="flex items-center gap-2 text-xs font-medium text-gray-800 dark:text-gray-200">
           <Keyboard size={13} />
           Shortcuts are disabled while typing in input fields.
         </p>

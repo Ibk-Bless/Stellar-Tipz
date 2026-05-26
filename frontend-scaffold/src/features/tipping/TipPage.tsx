@@ -149,7 +149,7 @@ const TipPage: React.FC = () => {
                 size="xl"
               />
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
                   Tip creator
                 </p>
                 <h1 id="tip-creator-heading" className="text-3xl font-black uppercase">
@@ -199,7 +199,7 @@ const TipPage: React.FC = () => {
 
         <Card className="space-y-5" padding="lg">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
               Send support
             </p>
             <h2 className="mt-2 text-2xl font-black uppercase">Tip in XLM</h2>

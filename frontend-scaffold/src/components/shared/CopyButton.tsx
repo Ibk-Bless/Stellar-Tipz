@@ -78,7 +78,7 @@ const CopyButton: React.FC<CopyButtonProps> = ({
       {copied ? (
         <Check className={`${sizeClasses[size]} text-green-500`} aria-hidden="true" />
       ) : (
-        <Copy className={`${sizeClasses[size]} text-gray-500 hover:text-gray-700`} aria-hidden="true" />
+        <Copy className={`${sizeClasses[size]} text-gray-800 dark:text-gray-200 hover:text-gray-700`} aria-hidden="true" />
       )}
     </button>
   );

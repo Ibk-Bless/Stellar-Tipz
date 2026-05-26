@@ -76,7 +76,7 @@ const EarningsTab: React.FC = () => {
       <Card padding="lg" className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
               Earnings trend
             </p>
             <h2 className="mt-2 text-2xl font-black uppercase">
@@ -94,7 +94,7 @@ const EarningsTab: React.FC = () => {
       <Card padding="lg" className="space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
               Withdrawal history
             </p>
             <h2 className="mt-2 text-2xl font-black uppercase">
@@ -118,7 +118,7 @@ const EarningsTab: React.FC = () => {
                 className="grid gap-4 border-[3px] border-black bg-[#faf7ef] p-4 md:grid-cols-[1.1fr_repeat(3,minmax(0,1fr))]"
               >
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
                     Requested
                   </p>
                   <p className="mt-2 text-lg font-black">
@@ -130,19 +130,19 @@ const EarningsTab: React.FC = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
                     Gross
                   </p>
                   <AmountDisplay amount={entry.gross} className="mt-2 block text-lg" />
                 </div>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
                     Fee
                   </p>
                   <AmountDisplay amount={entry.fee} className="mt-2 block text-lg" />
                 </div>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
                     Net
                   </p>
                   <AmountDisplay amount={entry.net} className="mt-2 block text-lg" />

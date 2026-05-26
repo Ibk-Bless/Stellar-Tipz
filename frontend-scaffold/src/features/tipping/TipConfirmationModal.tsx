@@ -60,7 +60,7 @@ export const TipConfirmationModal: React.FC<TipConfirmationModalProps> = ({
             size="lg"
           />
           <div>
-            <p className="text-xs font-black uppercase tracking-widest text-gray-500">Recipient</p>
+            <p className="text-xs font-black uppercase tracking-widest text-gray-800 dark:text-gray-200">Recipient</p>
             <h3 className="text-xl font-black uppercase">{creator.displayName}</h3>
             <p className="text-sm font-bold text-gray-600">@{creator.username}</p>
           </div>
@@ -68,18 +68,18 @@ export const TipConfirmationModal: React.FC<TipConfirmationModalProps> = ({
 
         <div className="space-y-3 bg-gray-50 dark:bg-gray-900 border-2 border-black p-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-bold uppercase text-gray-500">Tip Amount</span>
+            <span className="text-sm font-bold uppercase text-gray-800 dark:text-gray-200">Tip Amount</span>
             <span className="font-black">{numAmount.toFixed(2)} XLM</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm font-bold uppercase text-gray-500 flex items-center gap-1">
-              Platform Fee (2%) <Info size={14} className="text-gray-400" />
+            <span className="text-sm font-bold uppercase text-gray-800 dark:text-gray-200 flex items-center gap-1">
+              Platform Fee (2%) <Info size={14} className="text-gray-700 dark:text-gray-300" />
             </span>
             <span className="font-bold">{platformFee.toFixed(4)} XLM</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm font-bold uppercase text-gray-500">Network Fee</span>
-            <span className="font-bold text-gray-400">{ESTIMATED_TX_FEE} XLM</span>
+            <span className="text-sm font-bold uppercase text-gray-800 dark:text-gray-200">Network Fee</span>
+            <span className="font-bold text-gray-700 dark:text-gray-300">{ESTIMATED_TX_FEE} XLM</span>
           </div>
           <div className="border-t border-dashed border-black pt-2 flex justify-between items-center">
             <span className="text-lg font-black uppercase">Total</span>
@@ -91,7 +91,7 @@ export const TipConfirmationModal: React.FC<TipConfirmationModalProps> = ({
 
         {message && (
           <div className="card-brutalist bg-yellow-50 dark:bg-yellow-900/20 p-3">
-            <p className="text-xs font-black uppercase mb-1 text-gray-500">Message</p>
+            <p className="text-xs font-black uppercase mb-1 text-gray-800 dark:text-gray-200">Message</p>
             <p className="italic text-sm">"{message}"</p>
           </div>
         )}

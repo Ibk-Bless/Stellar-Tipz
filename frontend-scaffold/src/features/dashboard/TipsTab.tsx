@@ -95,7 +95,7 @@ const TipsTab: React.FC = () => {
       {/* Filter row */}
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+          <label className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
             From date
           </label>
           <input
@@ -109,7 +109,7 @@ const TipsTab: React.FC = () => {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+          <label className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
             To date
           </label>
           <input

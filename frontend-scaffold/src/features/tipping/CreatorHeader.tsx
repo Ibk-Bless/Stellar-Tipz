@@ -24,7 +24,7 @@ const CreatorHeader: React.FC<CreatorHeaderProps> = ({ profile }) => {
 
       <div className="space-y-1">
         <h1 className="text-3xl font-black uppercase leading-tight">{profile.displayName}</h1>
-        <p className="text-sm font-bold text-gray-500">@{profile.username}</p>
+        <p className="text-sm font-bold text-gray-800 dark:text-gray-200">@{profile.username}</p>
       </div>
 
       <CreditBadge score={profile.creditScore} />

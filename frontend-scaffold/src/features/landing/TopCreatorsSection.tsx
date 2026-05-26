@@ -156,6 +156,7 @@ export default function TopCreatorsSection() {
                   totalTips={creator.totalTipsReceived}
                   creditScore={creator.creditScore}
                   onTip={() => navigate(`/@${creator.username}`)}
+                  dataTourId={index === 0 ? 'tour-send-tip' : undefined}
                 />
               </motion.div>
             ))}

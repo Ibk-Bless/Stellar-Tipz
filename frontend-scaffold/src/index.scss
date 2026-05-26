@@ -30,6 +30,36 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .animate-spin,
+  [data-essential-motion="loading"],
+  [data-essential-motion="loading"] * {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
+    animation-timing-function: steps(8, end) !important;
+    transition: none !important;
+  }
+
+  .st-skeleton {
+    animation: none !important;
+    background-size: 100% 100% !important;
+  }
+}
+
 @layer utilities {
   /* Hide scrollbar while keeping scroll functionality */
   .no-scrollbar {
@@ -46,6 +76,15 @@
 
   .dark .shadow-brutalist {
     box-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 1);
+  }
+
+  *:focus-visible {
+    outline: 2px solid #000;
+    outline-offset: 2px;
+  }
+
+  .dark *:focus-visible {
+    outline: 2px solid #fff;
   }
 }
 

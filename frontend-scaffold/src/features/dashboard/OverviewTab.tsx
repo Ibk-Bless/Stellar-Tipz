@@ -195,7 +195,7 @@ const OverviewTab: React.FC = () => {
                     title={`${day.label}: ${day.total > 0 ? stroopToXlm(String(day.total)) + " XLM" : "0"}`}
                   />
                 </div>
-                <span className="text-[10px] font-bold uppercase text-gray-500">
+                <span className="text-[10px] font-bold uppercase text-gray-800 dark:text-gray-200">
                   {day.label}
                 </span>
               </div>

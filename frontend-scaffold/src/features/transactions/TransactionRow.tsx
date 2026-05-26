@@ -91,7 +91,7 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ tx }) => {
       <div className="flex flex-1 flex-col gap-1 min-w-0">
         {/* Counterparty */}
         {tx.counterparty && (
-          <p className="text-xs font-black uppercase tracking-[0.15em] text-gray-500">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-gray-800 dark:text-gray-200">
             {tx.type === "received"
               ? "From"
               : tx.type === "sent"
@@ -113,7 +113,7 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ tx }) => {
 
         {/* Withdrawal fee breakdown */}
         {tx.type === "withdrawal" && tx.fee && tx.net && (
-          <p className="text-xs text-gray-500 font-medium">
+          <p className="text-xs text-gray-800 dark:text-gray-200 font-medium">
             Fee: {stroopToXlm(tx.fee, 7)} XLM &nbsp;·&nbsp; Net:{" "}
             {stroopToXlm(tx.net, 7)} XLM
           </p>
@@ -126,7 +126,7 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ tx }) => {
           {cfg.amountPrefix}
           {stroopToXlm(tx.amount, 7)} XLM
         </p>
-        <p className="text-xs font-medium text-gray-500">
+        <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
           {formatDate(tx.date)}
         </p>
         {explorerUrl && (

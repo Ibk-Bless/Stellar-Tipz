@@ -60,23 +60,23 @@ const TipReceipt: React.FC<TipReceiptProps> = ({
 
         <div className="space-y-3 py-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Amount</span>
+            <span className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Amount</span>
             <span className="text-lg font-black">{amount || 'N/A'} XLM</span>
           </div>
           {sender && (
             <div className="flex justify-between items-center">
-              <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">From</span>
+              <span className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">From</span>
               <span className="text-sm font-bold truncate max-w-[150px]" title={sender}>{sender.slice(0, 6)}...{sender.slice(-4)}</span>
             </div>
           )}
           {receiver && (
             <div className="flex justify-between items-center">
-              <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">To</span>
+              <span className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">To</span>
               <span className="text-sm font-bold truncate max-w-[150px]">@{receiver}</span>
             </div>
           )}
           <div className="flex flex-col gap-1 pt-2">
-            <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Transaction Hash</span>
+            <span className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Transaction Hash</span>
             <span className="text-xs font-mono bg-gray-100 p-2 border border-gray-300 break-all">{safeTxHash}</span>
           </div>
         </div>
@@ -86,7 +86,7 @@ const TipReceipt: React.FC<TipReceiptProps> = ({
             <QRCodeSVG value={txUrl} size={100} level="M" />
           </div>
         </div>
-        <p className="text-center text-xs font-bold text-gray-400 mt-2">
+        <p className="text-center text-xs font-bold text-gray-700 dark:text-gray-300 mt-2">
           Scan to view transaction
         </p>
       </div>

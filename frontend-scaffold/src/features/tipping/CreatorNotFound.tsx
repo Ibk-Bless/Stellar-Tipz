@@ -13,7 +13,7 @@ const CreatorNotFound: React.FC<CreatorNotFoundProps> = ({ username }) => {
   return (
     <PageContainer maxWidth="md" className="py-10">
       <Card className="space-y-4" padding="lg">
-        <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">Creator lookup</p>
+        <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">Creator lookup</p>
         <h1 className="text-3xl font-black uppercase">Creator not found</h1>
         <p className="text-sm font-bold text-gray-700">
           We could not find @{username ?? 'unknown'}. Check the username and try again.

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 export type AnimationType = 'slide' | 'fade' | 'none';
 
@@ -22,20 +23,9 @@ const PageTransition: React.FC<PageTransitionProps> = ({
 }) => {
   const location = useLocation();
   const navigationType = useNavigationType();
-  const [shouldAnimate, setShouldAnimate] = React.useState(true);
+  const shouldReduceMotion = useReducedMotion();
 
-  // Check for reduced motion preference
-  React.useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setShouldAnimate(!mediaQuery.matches);
-
-    const handler = (e: MediaQueryListEvent) => {
-      setShouldAnimate(!e.matches);
-    };
-
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
+  const shouldAnimate = animationType !== 'none' && !shouldReduceMotion;
 
   // Determine animation direction based on navigation type
   const getSlideDirection = () => {
@@ -46,7 +36,7 @@ const PageTransition: React.FC<PageTransitionProps> = ({
   };
 
   const getAnimation = () => {
-    if (!shouldAnimate || animationType === 'none') {
+    if (!shouldAnimate) {
       return {
         initial: {},
         animate: {},

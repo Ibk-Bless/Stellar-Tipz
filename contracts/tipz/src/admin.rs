@@ -55,6 +55,42 @@ pub fn initialize(
     storage::set_paused(env, false);
     storage::set_min_tip_amount(env, 1_000_000_i128);
     storage::set_version(env, crate::CONTRACT_VERSION);
+    storage::set_runtime_config(
+        env,
+        &storage::RuntimeConfig {
+            admin: admin.clone(),
+            fee_collector: fee_collector.clone(),
+            fee_bps,
+            native_token: native_token.clone(),
+            paused: false,
+            min_tip_amount: 1_000_000_i128,
+            rate_limit: crate::types::RateLimitConfig {
+                max_ops: 50,
+                window_secs: 3600,
+            },
+        },
+    );
+    storage::set_leaderboard_set(
+        env,
+        &storage::LeaderboardSet {
+            all_time: Vec::new(env),
+            monthly: Vec::new(env),
+            weekly: Vec::new(env),
+            monthly_reset_at: 0,
+            weekly_reset_at: 0,
+        },
+    );
+    storage::set_send_tip_state(
+        env,
+        &storage::SendTipState {
+            tip_count: 0,
+            total_tips_volume: 0,
+            stats_window_start: 0,
+            tips_last_24h: 0,
+            volume_last_24h: 0,
+            active_creators_30d: 0,
+        },
+    );
 
     // Initialise counters to zero so reads never return None.
     env.storage()
