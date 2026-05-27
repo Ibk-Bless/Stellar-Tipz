@@ -51,7 +51,22 @@ fn find_insertion_index(entries: &Vec<LeaderboardEntry>, amount: i128) -> u32 {
     low
 }
 
+/// Re-position `profile` within a single sorted leaderboard `entries` list
+/// for a new cumulative `amount`.
+///
+/// The list is kept sorted descending and bounded to [`MAX_LEADERBOARD_SIZE`].
+/// The update is a remove-then-insert so a creator never appears twice:
+///
+/// 1. **Remove** the creator's existing entry, if present (their amount only
+///    ever grows, so the old position is always stale).
+/// 2. **Find** the new insertion index via [`find_insertion_index`]
+///    (O(log n) binary search, stable on ties).
+/// 3. **Insert** only if the position is within the capped window; an amount
+///    that ranks beyond [`MAX_LEADERBOARD_SIZE`] is dropped outright.
+/// 4. **Evict** the now-lowest entry if the insert pushed the list over the
+///    cap, keeping exactly the top `MAX_LEADERBOARD_SIZE`.
 fn update_entries(entries: &mut Vec<LeaderboardEntry>, profile: &Profile, amount: i128) {
+    // Step 1 — drop the creator's stale entry if they are already ranked.
     let mut i: u32 = 0;
     while i < entries.len() {
         if entries.get(i).unwrap().address == profile.owner {
@@ -61,7 +76,10 @@ fn update_entries(entries: &mut Vec<LeaderboardEntry>, profile: &Profile, amount
         i += 1;
     }
 
+    // Step 2 — locate where the new amount belongs in descending order.
     let insert_pos = find_insertion_index(entries, amount);
+
+    // Step 3 — only materialise the entry if it lands inside the top window.
     if insert_pos < MAX_LEADERBOARD_SIZE {
         let new_entry = LeaderboardEntry {
             address: profile.owner.clone(),
@@ -71,6 +89,7 @@ fn update_entries(entries: &mut Vec<LeaderboardEntry>, profile: &Profile, amount
         };
         entries.insert(insert_pos, new_entry);
 
+        // Step 4 — trim the tail so the list never exceeds the cap.
         if entries.len() > MAX_LEADERBOARD_SIZE {
             entries.pop_back();
         }
@@ -79,7 +98,11 @@ fn update_entries(entries: &mut Vec<LeaderboardEntry>, profile: &Profile, amount
 
 // ── public API ────────────────────────────────────────────────────────────────
 
-/// Refresh the leaderboard after `profile` has received a tip.
+/// Refresh all three leaderboards (all-time, monthly, weekly) after `profile`
+/// has received a tip of `amount`.
+///
+/// Deactivated profiles are skipped so a banned creator cannot occupy a slot;
+/// active profiles are forwarded to [`update_all_leaderboards_for_active`].
 pub fn update_all_leaderboards(env: &Env, profile: &Profile, amount: i128) {
     if storage::is_profile_deactivated(env, &profile.owner) {
         return;
@@ -87,6 +110,11 @@ pub fn update_all_leaderboards(env: &Env, profile: &Profile, amount: i128) {
     update_all_leaderboards_for_active(env, profile, amount);
 }
 
+/// Apply a tip to all three leaderboards in a single read-modify-write of the
+/// combined [`storage::LeaderboardSet`], avoiding three separate storage round
+/// trips. All-time ranks by lifetime `total_tips_received`; monthly and weekly
+/// rank by the rolling per-period volume (which the storage layer rolls over
+/// when a period boundary is crossed).
 pub fn update_all_leaderboards_for_active(env: &Env, profile: &Profile, amount: i128) {
     let mut boards = storage::get_leaderboard_set(env).unwrap_or_else(|| storage::LeaderboardSet {
         all_time: storage::get_leaderboard(env, LeaderboardPeriod::AllTime),
@@ -110,12 +138,17 @@ pub fn update_all_leaderboards_for_active(env: &Env, profile: &Profile, amount: 
     storage::set_leaderboard_set(env, &boards);
 }
 
+/// Remove `address` from every period leaderboard (e.g. on profile
+/// deactivation), so a delisted creator leaves no residual ranking.
 pub fn remove_from_all_leaderboards(env: &Env, address: &Address) {
     remove_from_leaderboard(env, LeaderboardPeriod::AllTime, address);
     remove_from_leaderboard(env, LeaderboardPeriod::Monthly, address);
     remove_from_leaderboard(env, LeaderboardPeriod::Weekly, address);
 }
 
+/// Refresh a single `period` leaderboard for `profile`. The all-time board
+/// ranks by lifetime tips; period boards rank by the rolling per-period volume
+/// returned from storage. No-op for deactivated profiles.
 pub fn update_leaderboard(
     env: &Env,
     profile: &Profile,
@@ -137,6 +170,8 @@ pub fn update_leaderboard(
     save_entries(env, period, &entries);
 }
 
+/// Clear a period leaderboard and stamp the reset time (used at month/week
+/// rollover). The all-time board is immutable and never reset.
 pub fn reset_leaderboard(env: &Env, period: LeaderboardPeriod) {
     if period == LeaderboardPeriod::AllTime {
         return; // All-time never resets

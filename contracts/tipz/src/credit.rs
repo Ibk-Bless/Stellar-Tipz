@@ -87,8 +87,16 @@ const SECONDS_PER_DAY: u64 = 86_400;
 
 /// Build the weighted credit component breakdown for `profile` at `now`.
 pub fn get_credit_breakdown_for_profile(profile: &Profile, now: u64) -> CreditBreakdown {
+    // ── Step 1: tip sub-score (0–100) ──────────────────────────────────────
+    // Clamp lifetime tip volume to [0, TIP_VOLUME_CAP] so a single whale tip
+    // can't dominate, then divide by TIP_DIVISOR (10 XLM in stroops) so every
+    // 10 XLM received earns one sub-score point, saturating at 100.
     let tip_sub: u32 = (profile.total_tips_received.clamp(0, TIP_VOLUME_CAP) / TIP_DIVISOR) as u32;
 
+    // ── Step 2: X (social) sub-score (0–100) ───────────────────────────────
+    // Two independently-capped halves (each ≤ X_SUB_CAP = 50): reach from
+    // follower count and engagement from the average interaction rate. A
+    // profile with no X data contributes nothing here.
     let x_sub: u32 = if profile.x_followers == 0 && profile.x_engagement_avg == 0 {
         0
     } else {
@@ -98,6 +106,10 @@ pub fn get_credit_breakdown_for_profile(profile: &Profile, now: u64) -> CreditBr
         follower_part + engagement_part
     };
 
+    // ── Step 3: account-age sub-score (0–100) ──────────────────────────────
+    // Rewards longevity: one point per AGE_DIVISOR (10) days of account age.
+    // Guard against clock skew (`now <= registered_at`) and grant nothing for
+    // accounts younger than a day so brand-new profiles don't earn age points.
     let age_sub: u32 =
         if now <= profile.registered_at || now - profile.registered_at < SECONDS_PER_DAY {
             0
@@ -106,6 +118,11 @@ pub fn get_credit_breakdown_for_profile(profile: &Profile, now: u64) -> CreditBr
             (age_days as u32 / AGE_DIVISOR).min(AGE_CAP)
         };
 
+    // ── Step 4: weight each sub-score and sum onto the base ─────────────────
+    // Each 0–100 sub-score is scaled by its weight (out of MAX_SCORE = 100),
+    // yielding the documented point budgets: tips ≤20, X ≤30, age ≤10. The
+    // weighted parts are added to BASE_SCORE (40) and the total is capped at
+    // MAX_SCORE so the result always lands in 0–100.
     let tip_score = tip_sub * TIP_WEIGHT / MAX_SCORE;
     let x_score = x_sub * X_WEIGHT / MAX_SCORE;
     let age_score = age_sub * AGE_WEIGHT / MAX_SCORE;

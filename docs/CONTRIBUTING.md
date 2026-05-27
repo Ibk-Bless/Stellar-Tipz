@@ -39,6 +39,39 @@ Be respectful, constructive, and inclusive. We follow the [Contributor Covenant]
 
 ---
 
+## Architecture Overview
+
+Stellar Tipz is a monorepo with two halves: a Soroban smart contract (the
+source of truth) and a React frontend that reads/writes it over RPC.
+
+```text
+┌──────────────────────────────┐        ┌──────────────────────────────────┐
+│  frontend-scaffold/          │        │  contracts/tipz/  (Soroban, Rust) │
+│  React 18 + Vite             │        │                                   │
+│  ├─ features/  (UI)          │        │  lib.rs        ← contract entry    │
+│  ├─ Zustand store (ADR-005)  │  RPC   │  ├─ profile / tips / token         │
+│  └─ contract bindings  ──────┼──────► │  ├─ credit.rs     (ADR-003)        │
+│                              │ invoke │  ├─ leaderboard.rs                 │
+│  Freighter wallet (signing)  │        │  ├─ fees.rs       (ADR-006)        │
+└──────────────────────────────┘        │  ├─ admin.rs / multisig.rs         │
+                                         │  └─ storage.rs    (ADR-004)        │
+                                         │        │                          │
+                                         │        ▼ instance/persistent/temp  │
+                                         │   Soroban storage (TTL-managed)    │
+                                         └──────────────────────────────────┘
+```
+
+- **Frontend** holds only light client state in a Zustand store; all durable
+  state lives on-chain. Transactions are signed with the Freighter wallet.
+- **Contract** is module-per-concern; `storage.rs` is the single gateway to
+  on-chain state and its TTL discipline.
+
+For the full picture see [`ARCHITECTURE.md`](../ARCHITECTURE.md) (directory
+layout, module boundaries, data flow) and the decision records in
+[`docs/adr/`](./adr/README.md).
+
+---
+
 ## Workflow
 
 We use a **fork-and-branch** workflow:
@@ -202,6 +235,23 @@ PRs are evaluated on:
 | **Code quality** — Clean, readable, idiomatic? | Medium |
 | **Performance** — No unnecessary computation? | Medium |
 | **Documentation** — Clear comments where needed? | Low |
+
+---
+
+## Resources
+
+**Project docs**
+- [Setup Guide](./SETUP.md) — get running locally in < 30 minutes
+- [Architecture](../ARCHITECTURE.md) and [ADRs](./adr/README.md) — how & why
+- [Deployment Guide](./DEPLOYMENT.md), [Contract Spec](./CONTRACT_SPEC.md),
+  [Credit Score](./CREDIT_SCORE.md), [Security](./SECURITY.md)
+
+**External**
+- [Soroban docs](https://developers.stellar.org/docs/build/smart-contracts/overview)
+- [Soroban SDK (Rust) reference](https://docs.rs/soroban-sdk)
+- [Stellar developer docs](https://developers.stellar.org/docs)
+- [Freighter wallet](https://www.freighter.app/)
+- [Rust book](https://doc.rust-lang.org/book/) · [Conventional Commits](https://www.conventionalcommits.org/)
 
 ---
 

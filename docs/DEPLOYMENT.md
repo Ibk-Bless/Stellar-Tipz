@@ -14,6 +14,41 @@
 
 ---
 
+## Pre-Deployment Checklist
+
+Complete **before** any deployment (and re-verify before mainnet):
+
+**Security**
+- [ ] `cargo test` passes for the contract (`contracts/tipz`)
+- [ ] `cargo fmt --check` and `cargo clippy -- -D warnings` are clean
+- [ ] For mainnet: third-party security audit completed and findings resolved
+- [ ] Admin key custody decided (hardware wallet or multisig for mainnet)
+- [ ] Fee basis points reviewed and within the contract cap (≤ 1000 bps / 10%)
+
+**Testing**
+- [ ] Full happy path exercised on testnet (register → tip → withdraw)
+- [ ] Edge cases verified (dust withdrawal fee, overflow, unregistered profile)
+- [ ] Frontend smoke-tested against the deployed testnet contract
+
+**Resource / cost estimates**
+- [ ] Wasm built in `--release` and (for mainnet) `soroban contract optimize` run
+- [ ] Deploy + `initialize` resource fees estimated with `--sim` / dry-run
+- [ ] Deployer account funded with enough XLM for deploy **and** storage rent
+- [ ] Storage TTL strategy understood (see `docs/adr/ADR-004-storage-strategy.md`)
+
+## Environment Configuration per Network
+
+| Setting | Testnet | Mainnet |
+|---------|---------|---------|
+| `VITE_NETWORK` / `REACT_APP_NETWORK` | `TESTNET` | `PUBLIC` |
+| Network passphrase | `Test SDF Network ; September 2015` | `Public Global Stellar Network ; September 2015` |
+| Soroban RPC URL | `https://soroban-testnet.stellar.org` | a mainnet RPC provider |
+| Native XLM SAC (`--native_token`) | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` | resolve via `soroban contract id asset --asset native --network mainnet` |
+| Deployer funding | Friendbot | real XLM |
+| Admin key | dev keypair | hardware wallet / multisig |
+
+---
+
 ## 1. Contract Deployment
 
 ### Build the Wasm Binary
@@ -222,3 +257,55 @@ Generate TypeScript bindings from the deployed contract:
 - [ ] Frontend deployed and accessible
 - [ ] Freighter wallet connects on deployed frontend
 - [ ] End-to-end happy path works (register → tip → withdraw)
+
+---
+
+## 6. Emergency Procedures and Rollback
+
+### Contract pause (first response)
+
+The contract supports an admin **pause** that blocks state-changing entry
+points (tips, withdrawals) while reads stay available. On a suspected exploit or
+critical bug:
+
+1. As admin, call the contract's `pause` (see `admin.rs`) to halt mutations.
+2. Communicate status to users (status page / social) — the frontend should
+   surface a maintenance banner.
+3. Investigate with on-chain events and logs before resuming.
+4. Call `unpause` only once the issue is understood and mitigated.
+
+### Frontend rollback
+
+The frontend is immutable per deployment, so rollback is instant:
+
+```bash
+# List recent deployments and promote a known-good one
+vercel ls
+vercel promote <previous-deployment-url>
+# or, in the Vercel dashboard: Deployments → previous → "Promote to Production"
+```
+
+If the issue is purely a bad `VITE_CONTRACT_ID`/network value, fix the env var
+and redeploy rather than rolling back code.
+
+### Contract upgrade vs. redeploy
+
+- **Upgrade (preferred):** the contract is upgradeable (`ContractVersion` is
+  bumped on upgrade). Ship a fixed Wasm via `soroban contract install` +
+  the admin-gated upgrade path; storage and the contract ID are preserved.
+- **Redeploy (last resort):** if state is corrupt or the ID must change, deploy
+  a fresh contract, migrate/re-initialize required state, then point the
+  frontend at the new contract ID. There is no automatic state migration — plan
+  it explicitly.
+
+### Key compromise
+
+If the admin key is compromised: pause immediately, transfer admin to a new
+secure key (hardware wallet / multisig) via the admin-transfer path, rotate any
+related operational secrets, and post-mortem before unpausing.
+
+### Post-incident
+
+- [ ] Root cause documented (consider a new `docs/adr/` entry if architectural)
+- [ ] Regression test added under `contracts/tipz/src/test`
+- [ ] Fix deployed and verified against the post-deployment checklist above
