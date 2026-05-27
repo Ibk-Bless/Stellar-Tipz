@@ -30,6 +30,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import CreatorNotFound from "./CreatorNotFound";
 import TipAmountPresets from "./TipAmountPresets";
 import TransactionTracker, { TransactionTrackerStatus } from "./TransactionTracker";
+import { useFormAutosave } from "@/hooks/useFormAutosave";
 
 const TipPage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
@@ -84,6 +85,24 @@ const TipPage: React.FC = () => {
   
   // Transaction guard to prevent duplicate submissions
   const { isPending: isTransactionPending, startTransaction } = useTransactionGuard();
+
+  const { clearSaved: clearTipDraft } = useFormAutosave({
+    storageKey: "tipz_tip_form",
+    data: { amount, message },
+    onRestore: (saved) => {
+      if (typeof saved.amount === "string") setAmount(saved.amount);
+      if (typeof saved.message === "string") setMessage(saved.message);
+    },
+    intervalMs: 5000,
+    ttlMs: 24 * 60 * 60 * 1000,
+    restorePrompt: "Restore saved tip?",
+  });
+
+  useEffect(() => {
+    if (step === "success") {
+      clearTipDraft();
+    }
+  }, [step, clearTipDraft]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -13,6 +13,7 @@ import { useContract, useUsernameCheck, useTransactionGuard } from '@/hooks';
 import { useToastStore } from '@/store/toastStore';
 import { ProfileFormData } from '@/types/profile';
 import { categorizeError, ERRORS } from '@/helpers/error';
+import { useFormAutosave } from '@/hooks/useFormAutosave';
 
 type TxStatus = 'idle' | 'signing' | 'submitting' | 'confirming' | 'success' | 'error';
 
@@ -81,6 +82,32 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ initialImageUrl }) => {
   
   // Username availability check
   const { available, checking, error: availabilityError } = useUsernameCheck(form.username);
+
+  const { clearSaved: clearRegisterDraft } = useFormAutosave({
+    storageKey: 'tipz_register_form',
+    data: {
+      username: form.username,
+      displayName: form.displayName,
+      xHandle: form.xHandle,
+    },
+    onRestore: (saved) => {
+      setForm((prev) => ({
+        ...prev,
+        username: typeof saved.username === 'string' ? saved.username : prev.username,
+        displayName: typeof saved.displayName === 'string' ? saved.displayName : prev.displayName,
+        xHandle: typeof saved.xHandle === 'string' ? saved.xHandle : prev.xHandle,
+      }));
+    },
+    intervalMs: 5000,
+    ttlMs: 24 * 60 * 60 * 1000,
+    restorePrompt: 'Restore saved registration?',
+  });
+
+  React.useEffect(() => {
+    if (txStatus === 'success') {
+      clearRegisterDraft();
+    }
+  }, [txStatus, clearRegisterDraft]);
 
   const handleChange =
     (field: keyof ProfileFormData) =>
