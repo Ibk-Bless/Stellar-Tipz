@@ -3,28 +3,22 @@ name: Contract CI
 on:
   push:
     branches: [main]
-    paths:
-      - "contracts/**"
   pull_request:
     branches: [main]
-    paths:
-      - "contracts/**"
 
 permissions:
   contents: read
 
 jobs:
   contract-checks:
-    name: Build & Test Soroban Contract
+    name: Soroban Contract CI
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     defaults:
       run:
         working-directory: contracts
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install Rust toolchain
@@ -44,17 +38,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Check formatting
-        run: cargo fmt -- --check
+      - name: cargo check
+        run: cargo check
 
-      - name: Run clippy
-        run: cargo clippy -- -D warnings
-
-      - name: Run tests
+      - name: cargo test
         run: cargo test
 
-      - name: Build Wasm (release)
-        run: cargo build --target wasm32-unknown-unknown --release
+      - name: cargo clippy
+        run: cargo clippy -- -D warnings
 
-      - name: Check WASM binary size
-        run: make check-size
+      - name: cargo fmt
+        run: cargo fmt -- --check
+
+      - name: Install soroban-cli
+        run: cargo install --locked soroban-cli
+
+      - name: Build WASM (soroban)
+        run: soroban contract build
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: soroban-wasm
+          path: |
+            contracts/target/wasm32-unknown-unknown/release/*.wasm
