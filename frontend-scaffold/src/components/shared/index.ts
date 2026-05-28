@@ -11,3 +11,5 @@ export { default as TransactionStatus } from "./TransactionStatus";
 export { default as WalletConnect } from "./WalletConnect";
 export { default as WalletSwitcher } from "./WalletSwitcher";
 export { default as Breadcrumbs } from "./Breadcrumbs";
+export { default as LazyImage } from "./LazyImage";
+export { default as LazyComponent, withLazyVisible } from "./LazyComponent";

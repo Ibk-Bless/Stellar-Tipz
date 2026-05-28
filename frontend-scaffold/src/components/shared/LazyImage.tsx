@@ -1,0 +1,104 @@
+import React, {
+  CSSProperties,
+  ImgHTMLAttributes,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+export type LazyImageProps = Omit<
+  ImgHTMLAttributes<HTMLImageElement>,
+  "src" | "loading"
+> & {
+  src: string;
+  placeholder?: string;
+  /** Force eager loading (e.g. for above-the-fold hero images). */
+  priority?: boolean;
+  rootMargin?: string;
+  /** Fired the first time the image source switches from placeholder to real src. */
+  onVisible?: () => void;
+};
+
+const FALLBACK_TRANSPARENT_PIXEL =
+  "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+
+const LazyImage: React.FC<LazyImageProps> = ({
+  src,
+  placeholder,
+  priority = false,
+  rootMargin = "200px",
+  alt = "",
+  onLoad,
+  onVisible,
+  style,
+  className,
+  ...rest
+}) => {
+  const initialSrc = priority ? src : placeholder ?? FALLBACK_TRANSPARENT_PIXEL;
+  const [currentSrc, setCurrentSrc] = useState<string>(initialSrc);
+  const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (priority) {
+      return;
+    }
+
+    const node = imgRef.current;
+    if (!node) {
+      return;
+    }
+
+    if (typeof window === "undefined" || !("IntersectionObserver" in window)) {
+      // No observer support: load immediately.
+      setCurrentSrc(src);
+      onVisible?.();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setCurrentSrc(src);
+            onVisible?.();
+            observer.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin },
+    );
+
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+    };
+  }, [priority, src, rootMargin, onVisible]);
+
+  const isRealImage = currentSrc === src;
+  const blurStyle: CSSProperties = !isRealImage || !loaded
+    ? { filter: "blur(8px)", transition: "filter 200ms ease-out" }
+    : { filter: "none", transition: "filter 200ms ease-out" };
+
+  return (
+    <img
+      {...rest}
+      ref={imgRef}
+      src={currentSrc}
+      alt={alt}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+      className={className}
+      style={{ ...blurStyle, ...style }}
+      onLoad={(event) => {
+        if (isRealImage) {
+          setLoaded(true);
+        }
+        onLoad?.(event);
+      }}
+    />
+  );
+};
+
+export default LazyImage;

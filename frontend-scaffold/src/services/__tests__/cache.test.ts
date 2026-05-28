@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildContractCacheKey, ContractQueryCache } from '../cache';
+import {
+  buildContractCacheKey,
+  buildContractCacheKeyPrefix,
+  ContractQueryCache,
+} from '../cache';
 
 describe('Contract query cache', () => {
   beforeEach(() => {
@@ -74,5 +78,62 @@ describe('Contract query cache', () => {
     await cache.getOrFetch(buildContractCacheKey('get_profile', 'c'), 30_000, async () => 'c');
 
     expect(cache.size()).toBe(2);
+  });
+
+  it('evicts the least recently *accessed* entry (true LRU)', async () => {
+    const cache = new ContractQueryCache(2);
+    const keyA = buildContractCacheKey('get_profile', 'a');
+    const keyB = buildContractCacheKey('get_profile', 'b');
+    const keyC = buildContractCacheKey('get_profile', 'c');
+
+    await cache.getOrFetch(keyA, 30_000, async () => 'a');
+    vi.advanceTimersByTime(1);
+    await cache.getOrFetch(keyB, 30_000, async () => 'b');
+    vi.advanceTimersByTime(1);
+
+    // Re-access A so B is now the LRU.
+    await cache.getOrFetch(keyA, 30_000, async () => 'a-refetch');
+    vi.advanceTimersByTime(1);
+
+    await cache.getOrFetch(keyC, 30_000, async () => 'c');
+
+    expect(cache.size()).toBe(2);
+    // A survives, B got evicted, fresh fetcher proves it.
+    const fetcherForB = vi.fn(async () => 'b-fresh');
+    await cache.getOrFetch(keyB, 30_000, fetcherForB);
+    expect(fetcherForB).toHaveBeenCalledTimes(1);
+  });
+
+  it('invalidates entries by prefix after a write', async () => {
+    const cache = new ContractQueryCache();
+    const balanceKey = buildContractCacheKey('balance', 'token-1', 'GA...');
+    const profileKey = buildContractCacheKey('get_profile', 'alice');
+
+    await cache.getOrFetch(balanceKey, 30_000, async () => '10');
+    await cache.getOrFetch(profileKey, 30_000, async () => ({ name: 'alice' }));
+
+    const removed = cache.invalidateByPrefix(buildContractCacheKeyPrefix('balance'));
+
+    expect(removed).toBe(1);
+    expect(cache.size()).toBe(1);
+
+    const balanceFetcher = vi.fn(async () => '20');
+    await cache.getOrFetch(balanceKey, 30_000, balanceFetcher);
+    expect(balanceFetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks hit/miss metrics', async () => {
+    const cache = new ContractQueryCache();
+    const fetcher = vi.fn(async () => 'data');
+    const key = buildContractCacheKey('get_profile', 'alice');
+
+    await cache.getOrFetch(key, 30_000, fetcher); // miss
+    await cache.getOrFetch(key, 30_000, fetcher); // hit
+    await cache.getOrFetch(key, 30_000, fetcher); // hit
+
+    const metrics = cache.metrics();
+    expect(metrics.misses).toBe(1);
+    expect(metrics.hits).toBe(2);
+    expect(metrics.hitRate).toBeCloseTo(2 / 3);
   });
 });

@@ -2,6 +2,7 @@
 
 mod test_admin;
 mod test_anonymous_tips;
+mod test_benchmark;
 mod test_budget;
 mod test_config;
 mod test_credit;
@@ -22,6 +23,7 @@ mod test_multisig;
 mod test_pause;
 mod test_profile_query;
 mod test_profiles;
+mod test_property;
 mod test_register;
 mod test_security;
 mod test_stats;
