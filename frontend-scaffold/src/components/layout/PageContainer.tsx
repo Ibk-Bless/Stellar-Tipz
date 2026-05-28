@@ -1,15 +1,17 @@
 import React from 'react';
 
-interface PageContainerProps {
+interface PageContainerProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  ariaLabel?: string;
 }
 
 const PageContainer: React.FC<PageContainerProps> = ({
   children,
   maxWidth = 'lg',
   className = '',
+  ...props
 }) => {
   const widths: Record<string, string> = {
     sm: 'max-w-2xl',
@@ -19,7 +21,12 @@ const PageContainer: React.FC<PageContainerProps> = ({
   };
 
   return (
-    <main id="main-content" tabIndex={-1} className={`${widths[maxWidth]} mx-auto px-4 py-8 ${className} focus:outline-none`}>
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className={`${widths[maxWidth]} mx-auto px-4 py-8 ${className} focus:outline-none`}
+      {...props}
+    >
       {children}
     </main>
   );

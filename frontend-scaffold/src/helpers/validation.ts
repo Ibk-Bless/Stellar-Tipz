@@ -1,3 +1,5 @@
+import { hasHomoglyphs } from './sanitize';
+
 export interface ValidationResult {
   valid: boolean;
   error?: string;
@@ -13,6 +15,10 @@ export const validateUsername = (username: string): ValidationResult => {
 
   if (trimmed.length < 3 || trimmed.length > 32) {
     return { valid: false, error: "Username must be 3-32 characters long." };
+  }
+
+  if (hasHomoglyphs(trimmed)) {
+    return { valid: false, error: "Username contains potentially confusable characters." };
   }
 
   if (!USERNAME_RE.test(trimmed)) {
@@ -55,6 +61,33 @@ export const validateBio = (bio: string): ValidationResult => {
 export const validateMessage = (message: string): ValidationResult => {
   if (message.length > MAX_MESSAGE_LENGTH) {
     return { valid: false, error: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer.` };
+  }
+
+  return { valid: true };
+};
+
+const X_HANDLE_RE = /^@?[a-zA-Z0-9_]{1,15}$/;
+
+export const validateXHandle = (handle: string): ValidationResult => {
+  const trimmed = handle.trim();
+
+  if (trimmed.length === 0) {
+    return { valid: false, error: "X handle cannot be empty." };
+  }
+
+  if (trimmed.length > 16) {
+    return { valid: false, error: "X handle must be 16 characters or fewer." };
+  }
+
+  if (!X_HANDLE_RE.test(trimmed)) {
+    return {
+      valid: false,
+      error: "X handle contains invalid characters. Only alphanumeric and underscores allowed.",
+    };
+  }
+
+  if (trimmed === "@") {
+    return { valid: false, error: "X handle cannot be just '@'." };
   }
 
   return { valid: true };

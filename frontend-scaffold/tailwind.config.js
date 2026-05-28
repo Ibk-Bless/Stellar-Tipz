@@ -11,6 +11,14 @@ export default {
         black: '#000000',
         white: '#FFFFFF',
         'off-white': '#FAFAFA',
+        background: {
+          light: "#FFFFFF",
+          dark: "#000000",
+        },
+        foreground: {
+          light: "#111111",
+          dark: "#F5F5F5",
+        },
       },
       boxShadow: {
         'brutalist': '4px 4px 0px 0px rgba(0,0,0,1)',
@@ -19,6 +27,8 @@ export default {
         'brutalist-dark': '4px 4px 0px 0px rgba(255,255,255,1)',
         'brutalist-lg-dark': '6px 6px 0px 0px rgba(255,255,255,1)',
         'brutalist-sm-dark': '2px 2px 0px 0px rgba(255,255,255,1)',
+        'brutal-lg': '6px 6px 0px 0px rgba(0,0,0,1)',
+        'brutal-lg-dark': '6px 6px 0px 0px rgba(255,255,255,1)',
       },
       borderWidth: {
         '3': '3px',

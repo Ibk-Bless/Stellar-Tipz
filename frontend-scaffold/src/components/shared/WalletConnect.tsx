@@ -4,7 +4,10 @@ import Toast from '../ui/Toast';
 import CreditBadge from './CreditBadge';
 import WalletErrorRecovery from './WalletErrorRecovery';
 import { useWallet, useProfile } from '../../hooks';
+import { SUPPORTED_WALLETS } from '../../hooks/useWallet';
 import { truncateAddress } from '../../services';
+import Modal from '../ui/Modal';
+import { HelpCircle, Download, CheckCircle2, Wallet } from 'lucide-react';
 
 interface WalletConnectProps {
   className?: string;
@@ -13,6 +16,13 @@ interface WalletConnectProps {
 const WalletConnect: React.FC<WalletConnectProps> = ({ className }) => {
   const { publicKey, connected, connecting, error, walletError, connect, disconnect } = useWallet();
   const { profile } = useProfile();
+  const [showModal, setShowModal] = React.useState(false);
+  const [isDisconnectDialogOpen, setIsDisconnectDialogOpen] = React.useState(false);
+
+  const handleDisconnect = () => {
+    setIsDisconnectDialogOpen(false);
+    disconnect();
+  };
 
   if (connected && publicKey) {
     return (
@@ -23,7 +33,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ className }) => {
             {truncateAddress(publicKey)}
           </span>
         </div>
-        <Button variant="outline" size="sm" onClick={disconnect}>
+        <Button variant="outline" size="sm" onClick={() => setIsDisconnectDialogOpen(true)}>
           Disconnect
         </Button>
       </div>
@@ -34,7 +44,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ className }) => {
     <>
       <Button
         size="sm"
-        onClick={connect}
+        onClick={() => setShowModal(true)}
         loading={connecting}
         className={className}
       >
@@ -47,7 +57,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ className }) => {
         <Toast
           message={error}
           type="error"
-          onClose={() => {}}
+          onClose={() => setError(null)}
         />
       ) : null}
     </>

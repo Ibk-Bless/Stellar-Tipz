@@ -2,6 +2,45 @@
 
 use soroban_sdk::{contracttype, Address, String};
 
+/// Verification type for creator profiles.
+///
+/// `Unverified` is the default state — it replaces `Option::None` so that
+/// `VerificationType` can be embedded directly in a `#[contracttype]` struct
+/// without wrapping it in `Option` (which soroban-sdk does not support for
+/// custom contracttype enums).
+#[contracttype]
+#[derive(Clone, Debug, PartialEq, Default)]
+pub enum VerificationType {
+    #[default]
+    Unverified,
+    Identity,
+    SocialMedia,
+    Community,
+}
+
+/// Period for leaderboard tracking.
+#[contracttype]
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+pub enum LeaderboardPeriod {
+    AllTime,
+    Monthly,
+    Weekly,
+}
+
+/// Verification status for a creator profile.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct VerificationStatus {
+    /// Whether the creator is verified
+    pub is_verified: bool,
+    /// Verification type (Unverified when not yet verified)
+    pub verification_type: VerificationType,
+    /// Timestamp when verification was granted (0 = not set)
+    pub verified_at: Option<u64>,
+    /// Timestamp when verification was revoked (0 = not revoked)
+    pub revoked_at: Option<u64>,
+}
+
 /// Creator profile stored on-chain.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
@@ -12,10 +51,14 @@ pub struct Profile {
     pub username: String,
     /// Display name (1-64 chars)
     pub display_name: String,
-    /// Short bio (0-280 chars)
+    /// Short bio (0-500 chars)
     pub bio: String,
+    /// Website URL (0-200 chars)
+    pub website: String,
     /// Profile image URL or IPFS CID (0-256 chars)
     pub image_url: String,
+    /// Map of social platforms to handles (max 5 links)
+    pub social_links: soroban_sdk::Map<soroban_sdk::Symbol, String>,
     /// X (Twitter) handle (0-32 chars)
     pub x_handle: String,
     /// X follower count (set by admin)
@@ -34,6 +77,76 @@ pub struct Profile {
     pub registered_at: u64,
     /// Last profile update timestamp
     pub updated_at: u64,
+    /// Verification status
+    pub verification: VerificationStatus,
+    /// Domain claimed for stellar.toml verification (empty = not set)
+    pub domain: String,
+    /// Whether the domain ownership has been verified by admin
+    pub domain_verified: bool,
+    /// Timestamp when domain was last verified
+    pub domain_verified_at: Option<u64>,
+    /// Creator-specific minimum tip override in stroops (None = use global minimum)
+    pub custom_min_tip: Option<i128>,
+}
+
+/// Profile plus deactivation state for queries (`get_profile`, `get_profile_by_username`).
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProfileWithDeactivation {
+    pub profile: Profile,
+    pub is_deactivated: bool,
+    /// Set when the profile is deactivated (hidden from leaderboard, tips disabled).
+    pub deactivated_at: Option<u64>,
+}
+
+/// Pending time-locked admin rotation (see `ADMIN_CHANGE_TIMELOCK_SECS`).
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct AdminChangeProposal {
+    pub new_admin: Address,
+    /// Unix timestamp after which `confirm_admin_change` may succeed.
+    pub confirmable_after: u64,
+}
+
+/// One recorded completed admin handoff (two-step confirm or direct `set_admin`).
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct AdminChangeHistoryEntry {
+    pub old_admin: Address,
+    pub new_admin: Address,
+    pub confirmed_at: u64,
+}
+
+/// Recurring tip subscription record.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Subscription {
+    /// Address of the supporter
+    pub subscriber: Address,
+    /// Address of the creator
+    pub creator: Address,
+    /// Amount to tip per interval
+    pub amount: i128,
+    /// Interval in days
+    pub interval_days: u32,
+    /// Timestamp of next execution
+    pub next_due: u64,
+    /// Whether the subscription is currently active
+    pub active: bool,
+}
+
+/// Pending withdrawal for security cooldown.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PendingWithdrawal {
+    /// Unique withdrawal ID
+    pub id: u32,
+    /// Creator address
+    pub creator: Address,
+    /// Amount to withdraw
+    pub amount: i128,
+    /// Execution timestamp (after cooldown)
+    pub unlock_at: u64,
 }
 
 /// Individual tip record stored in temporary storage with a TTL of ~7 days.
@@ -42,8 +155,10 @@ pub struct Profile {
 pub struct Tip {
     /// Unique tip ID (monotonically increasing global counter)
     pub id: u32,
-    /// Address that sent the tip
-    pub tipper: Address,
+    /// Address that actually sent the funds
+    pub sender: Address,
+    /// Address that gets the credit (on behalf of). Same as sender for normal tips.
+    pub benefactor: Option<Address>,
     /// Address of the creator who received the tip
     pub creator: Address,
     /// Tip amount in stroops
@@ -52,6 +167,26 @@ pub struct Tip {
     pub message: String,
     /// Ledger timestamp at the time the tip was sent
     pub timestamp: u64,
+    /// Whether this tip is anonymous
+    pub is_anonymous: bool,
+}
+
+/// Supporter/creator streak record.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Streak {
+    /// Address of the supporter.
+    pub supporter: Address,
+    /// Address of the creator being tipped.
+    pub creator: Address,
+    /// Current consecutive streak count.
+    pub current: u32,
+    /// Longest streak observed for this pair.
+    pub longest: u32,
+    /// Day index of the last qualifying tip.
+    pub last_tip_day: Option<u64>,
+    /// Lifetime bonus points earned from this streak.
+    pub bonus_points: u32,
 }
 
 /// Leaderboard entry for top creators.
@@ -62,8 +197,8 @@ pub struct LeaderboardEntry {
     pub address: Address,
     /// Creator's username
     pub username: String,
-    /// Lifetime tips received
-    pub total_tips_received: i128,
+    /// Tips received during the period
+    pub amount: i128,
     /// Current credit score
     pub credit_score: u32,
 }
@@ -99,6 +234,8 @@ pub struct CreditBreakdown {
     pub x_score: u32,
     /// Weighted contribution from account age.
     pub age_score: u32,
+    /// Weighted contribution from supporter streaks.
+    pub streak_score: u32,
     /// Final score after summing all components (capped at 100).
     pub total: u32,
 }
@@ -159,4 +296,114 @@ pub struct ContractConfig {
     pub is_initialized: bool,
     /// On-chain contract version
     pub version: u32,
+}
+
+/// Donation page configuration for a creator
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct DonationPageConfig {
+    /// Custom welcome message (0-500 chars)
+    pub welcome_message: String,
+    /// Suggested tip amounts (up to 6 presets)
+    pub suggested_amounts: soroban_sdk::Vec<i128>,
+    /// Theme color (hex format, e.g., "#ff6b6b")
+    pub theme_color: String,
+    /// Header image URI (IPFS CID or URL, 0-256 chars)
+    pub header_image_uri: String,
+    /// Whether this is the default config
+    pub is_default: bool,
+}
+
+/// Rate limit configuration for the contract.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct RateLimitConfig {
+    /// Max operations per window
+    pub max_ops: u32,
+    /// Window duration in seconds (e.g., 3600 for 1 hour)
+    pub window_secs: u64,
+}
+
+/// Rate limit tracking for an address.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct RateLimitStatus {
+    /// Number of operations performed in the current window
+    pub count: u32,
+    /// Timestamp when the current window started
+    pub last_op_time: u64,
+}
+
+/// Goal tracking for creators
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Goal {
+    /// Creator address
+    pub creator: Address,
+    /// Target amount to raise
+    pub target: i128,
+    /// Amount raised so far
+    pub raised: i128,
+    /// Goal description (max 500 chars)
+    pub description: String,
+    /// Deadline timestamp (0 = no deadline)
+    pub deadline: u64,
+    /// Whether the goal is currently active
+    pub active: bool,
+    /// Timestamp when goal was created
+    pub created_at: u64,
+    /// Timestamp when goal was reached (None = not reached yet)
+    pub reached_at: Option<u64>,
+}
+
+/// Accepted token configuration for multi-token tipping
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct AcceptedToken {
+    /// Token contract address
+    pub token_address: Address,
+    /// Oracle address for price conversion (optional)
+    pub oracle_address: Option<Address>,
+    /// Whether the token is currently enabled
+    pub enabled: bool,
+    /// Timestamp when token was added
+    pub added_at: u64,
+}
+
+/// Token balance for a creator
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct TokenBalance {
+    /// Token contract address
+    pub token_address: Address,
+    /// Balance amount
+    pub amount: i128,
+}
+
+/// Scheduled tip for future delivery
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct ScheduledTip {
+    /// Unique scheduled tip ID
+    pub id: u32,
+    /// Address of the sender
+    pub sender: Address,
+    /// Address of the creator recipient
+    pub creator: Address,
+    /// Tip amount in stroops
+    pub amount: i128,
+    /// Optional message (0-280 chars)
+    pub message: String,
+    /// Timestamp when the tip should be delivered
+    pub deliver_at: u64,
+    /// Whether the tip has been delivered
+    pub delivered: bool,
+    /// Timestamp when the tip was actually delivered (None = not delivered)
+    pub delivered_at: Option<u64>,
+    /// Whether the tip has been cancelled
+    pub cancelled: bool,
+    /// Timestamp when the tip was cancelled (None = not cancelled)
+    pub cancelled_at: Option<u64>,
+    /// Timestamp when the scheduled tip was created
+    pub created_at: u64,
 }

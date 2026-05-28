@@ -7,7 +7,14 @@ const CHART_BAR_HEIGHTS = ["28%", "52%", "44%", "68%", "34%", "58%", "40%"];
 
 const DashboardSkeleton: React.FC = () => {
   return (
-    <PageContainer maxWidth="xl" className="space-y-6 py-10">
+    <PageContainer
+      maxWidth="xl"
+      className="space-y-6 py-10"
+      role="status"
+      aria-label="Loading dashboard"
+      aria-live="polite"
+      aria-busy="true"
+    >
       <section className="flex flex-col gap-3">
         <div className="space-y-2">
           <Skeleton width="100px" height="10px" />
@@ -67,7 +74,8 @@ const DashboardSkeleton: React.FC = () => {
               <Skeleton width="120px" height="10px" />
               <Skeleton width="100px" height="20px" />
             </div>
-            <Skeleton lines={2} />
+            <Skeleton width="100%" height="14px" />
+              <Skeleton width="90%" height="14px" className="mt-2" />
           </Card>
 
           <Card className="space-y-4" padding="lg">

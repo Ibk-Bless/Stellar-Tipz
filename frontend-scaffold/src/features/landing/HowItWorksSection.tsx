@@ -51,9 +51,10 @@ const stepVariants = {
 
 const HowItWorksSection: React.FC = () => {
   return (
-    <section className="py-20 px-4 bg-gray-50">
+    <section aria-labelledby="how-it-works-heading" className="py-20 px-4 bg-gray-50">
       <div className="max-w-6xl mx-auto">
         <motion.h2
+          id="how-it-works-heading"
           className="text-3xl md:text-4xl font-bold text-center mb-4"
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -63,7 +64,7 @@ const HowItWorksSection: React.FC = () => {
           HOW IT WORKS
         </motion.h2>
         <motion.p
-          className="text-gray-500 text-center mb-16 max-w-xl mx-auto"
+          className="text-gray-800 dark:text-gray-200 text-center mb-16 max-w-xl mx-auto"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -93,7 +94,7 @@ const HowItWorksSection: React.FC = () => {
                   </div>
                 </div>
                 <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed max-w-[200px]">
+                <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed max-w-[200px]">
                   {step.description}
                 </p>
               </motion.div>
@@ -138,7 +139,7 @@ const HowItWorksSection: React.FC = () => {
               </div>
               <div className="pt-1">
                 <h3 className="font-semibold text-base mb-1">{step.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
+                <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">
                   {step.description}
                 </p>
               </div>

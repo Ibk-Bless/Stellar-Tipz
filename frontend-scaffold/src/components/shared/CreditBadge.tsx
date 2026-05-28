@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import Badge from "../ui/Badge";
 import { getTierFromScore } from "@/helpers/badge";
@@ -17,13 +17,16 @@ const CreditBadge: React.FC<CreditBadgeProps> = ({
   className,
   clickable = false,
 }) => {
-  const tier = getTierFromScore(score);
-  const badge = (
-    <Badge
-      tier={tier}
-      score={showScore ? score : undefined}
-      className={`${clickable ? "cursor-pointer" : ""} ${className ?? ""}`}
-    />
+  const tier = useMemo(() => getTierFromScore(score), [score]);
+  const badge = useMemo(
+    () => (
+      <Badge
+        tier={tier}
+        score={showScore ? score : undefined}
+        className={`${clickable ? "cursor-pointer" : ""} ${className ?? ""}`}
+      />
+    ),
+    [className, clickable, score, showScore, tier],
   );
 
   return (
@@ -43,4 +46,4 @@ const CreditBadge: React.FC<CreditBadgeProps> = ({
   );
 };
 
-export default CreditBadge;
+export default React.memo(CreditBadge);

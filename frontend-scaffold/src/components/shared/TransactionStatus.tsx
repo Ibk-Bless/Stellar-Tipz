@@ -36,13 +36,22 @@ const TransactionStatus: React.FC<TransactionStatusProps> = ({
   if (status === "idle") return null;
 
   const isLoading = ["signing", "submitting", "confirming"].includes(status);
+  const liveRegionProps =
+    status === "error"
+      ? { role: "alert", "aria-live": "assertive" as const }
+      : { role: "status", "aria-live": "polite" as const };
   const explorerBase =
     network === "PUBLIC"
       ? "https://stellar.expert/explorer/public/tx/"
       : "https://stellar.expert/explorer/testnet/tx/";
 
   return (
-    <div className="border-2 border-black p-4 text-center">
+    <div
+      className="border-2 border-black p-4 text-center"
+      aria-atomic="true"
+      aria-busy={isLoading ? "true" : "false"}
+      {...liveRegionProps}
+    >
       {isLoading && <Loader text={statusMessages[status]} />}
 
       {status === "success" && (

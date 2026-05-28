@@ -1,47 +1,100 @@
-import React from 'react';
-import { Github, Twitter } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Github, Twitter } from "lucide-react";
+import { Link } from "react-router-dom";
+
+import { Language, useI18n } from "@/i18n";
+
+const languages: Language[] = ["en", "es", "fr", "pt"];
 
 const Footer: React.FC = () => {
+  const { language, languageNames, setLanguage, t } = useI18n();
+
   return (
-    <footer className="border-t-3 border-black bg-white dark:bg-black dark:border-white py-10">
-      <div className="max-w-6xl mx-auto px-4">
-        {/* Navigation grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-          {/* Brand column */}
+    <footer
+      aria-label="Site footer"
+      className="border-t-3 border-black bg-white py-10 dark:border-white dark:bg-black"
+    >
+      <div className="mx-auto max-w-6xl px-4">
+        <div className="mb-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <span className="text-lg font-black">TIPZ</span>
-              <span>💫</span>
+              <span>*</span>
             </div>
-            <span className="text-sm text-gray-600 dark:text-gray-400">Built on Stellar</span>
+            <span className="text-sm text-gray-600 dark:text-gray-700 dark:text-gray-300">
+              {t("footer.builtOn")}
+            </span>
             <a
               href="https://soroban.stellar.org"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:opacity-60 transition-opacity w-fit"
+              className="flex w-fit items-center gap-1 text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"
             >
-              ⚡ Powered by Stellar Soroban
+              {t("footer.powered")}
             </a>
+            <label className="mt-2 flex flex-col gap-1 text-xs font-black uppercase tracking-wide">
+              {t("footer.language")}
+              <select
+                value={language}
+                onChange={(event) =>
+                  setLanguage(event.target.value as Language)
+                }
+                className="h-10 border-2 border-black bg-white px-2 text-sm font-bold normal-case tracking-normal dark:border-white dark:bg-black"
+              >
+                {languages.map((option) => (
+                  <option key={option} value={option}>
+                    {languageNames[option]}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
-          {/* Product */}
-          <div className="flex flex-col gap-2">
-            <h3 className="font-black text-sm uppercase tracking-wide">Product</h3>
-            <Link to="/" className="text-sm text-gray-600 dark:text-gray-400 hover:opacity-60 transition-opacity w-fit">Home</Link>
-            <Link to="/leaderboard" className="text-sm text-gray-600 dark:text-gray-400 hover:opacity-60 transition-opacity w-fit">Leaderboard</Link>
-            <Link to="/dashboard" className="text-sm text-gray-600 dark:text-gray-400 hover:opacity-60 transition-opacity w-fit">Dashboard</Link>
-          </div>
+          <nav aria-label="Footer product navigation" className="flex flex-col gap-2">
+            <h3 className="text-sm font-black uppercase tracking-wide">
+              {t("footer.product")}
+            </h3>
+            <Link
+              to="/"
+              className="w-fit text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"
+            >
+              {t("footer.home")}
+            </Link>
+            <Link
+              to="/leaderboard"
+              className="w-fit text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"
+            >
+              {t("nav.leaderboard")}
+            </Link>
+            <Link
+              to="/dashboard"
+              className="w-fit text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"
+            >
+              {t("nav.dashboard")}
+            </Link>
+          </nav>
 
-          {/* Resources */}
-          <div className="flex flex-col gap-2">
-            <h3 className="font-black text-sm uppercase tracking-wide">Resources</h3>
-            <a href="/docs" className="text-sm text-gray-600 dark:text-gray-400 hover:opacity-60 transition-opacity w-fit">Docs</a>
+          <nav aria-label="Footer resources navigation" className="flex flex-col gap-2">
+            <h3 className="text-sm font-black uppercase tracking-wide">
+              {t("footer.resources")}
+            </h3>
+            <Link
+              to="/help"
+              className="w-fit text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"
+            >
+              Help Center
+            </Link>
+            <a
+              href="/docs"
+              className="w-fit text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"
+            >
+              {t("footer.docs")}
+            </a>
             <a
               href="https://github.com/Akanimoh12/Stellar-Tipz"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-gray-600 dark:text-gray-400 hover:opacity-60 transition-opacity w-fit"
+              className="w-fit text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"
             >
               GitHub
             </a>
@@ -49,20 +102,21 @@ const Footer: React.FC = () => {
               href="https://soroban.stellar.org/docs"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-gray-600 dark:text-gray-400 hover:opacity-60 transition-opacity w-fit"
+              className="w-fit text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"
             >
-              Contract Spec
+              {t("footer.contractSpec")}
             </a>
-          </div>
+          </nav>
 
-          {/* Community */}
-          <div className="flex flex-col gap-2">
-            <h3 className="font-black text-sm uppercase tracking-wide">Community</h3>
+          <section aria-label="Community links" className="flex flex-col gap-2">
+            <h3 className="text-sm font-black uppercase tracking-wide">
+              {t("footer.community")}
+            </h3>
             <a
               href="https://twitter.com/TipzApp"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:opacity-60 transition-opacity w-fit"
+              className="flex w-fit items-center gap-1 text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"
             >
               <Twitter size={14} /> Twitter
             </a>
@@ -70,24 +124,23 @@ const Footer: React.FC = () => {
               href="https://discord.gg/stellardev"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:opacity-60 transition-opacity w-fit"
+              className="flex w-fit items-center gap-1 text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"
             >
               <Github size={14} /> Stellar Discord
             </a>
-          </div>
+          </section>
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            &copy; {new Date().getFullYear()} Stellar Tipz. MIT License.
+        <div className="flex flex-col items-center justify-between gap-3 border-t border-gray-200 pt-6 dark:border-gray-700 sm:flex-row">
+          <p className="text-sm text-gray-600 dark:text-gray-700 dark:text-gray-300">
+            &copy; {new Date().getFullYear()} {t("footer.license")}
           </p>
           <div className="flex items-center gap-4">
             <a
               href="https://github.com/Akanimoh12/Stellar-Tipz"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:opacity-60 transition-opacity"
+              className="transition-opacity hover:opacity-60"
               aria-label="GitHub"
             >
               <Github size={18} />
@@ -96,7 +149,7 @@ const Footer: React.FC = () => {
               href="https://twitter.com/TipzApp"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:opacity-60 transition-opacity"
+              className="transition-opacity hover:opacity-60"
               aria-label="Twitter"
             >
               <Twitter size={18} />

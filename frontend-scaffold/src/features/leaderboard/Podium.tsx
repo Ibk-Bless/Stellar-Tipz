@@ -84,14 +84,14 @@ const Podium: React.FC<PodiumProps> = ({ creators }) => {
                 <p className="mt-4 text-2xl font-black uppercase">
                   {creator.username}
                 </p>
-                <p className="mt-2 text-sm font-bold uppercase tracking-[0.2em] text-gray-500">
+                <p className="mt-2 text-sm font-bold uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
                   {slot.badgeLabel} podium
                 </p>
               </div>
 
               <div className="mt-6 grid gap-3">
                 <div className="border-[3px] border-black bg-[#fff6cf] p-3">
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
                     Total tips
                   </p>
                   <AmountDisplay
@@ -100,7 +100,7 @@ const Podium: React.FC<PodiumProps> = ({ creators }) => {
                   />
                 </div>
                 <div className="border-[3px] border-black bg-[#f5f5f5] p-3">
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
                     Credit score
                   </p>
                   <p className="mt-2 text-2xl font-black">

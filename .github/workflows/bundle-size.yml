@@ -1,0 +1,85 @@
+name: Bundle Size Check
+
+on:
+  pull_request:
+    paths:
+      - "frontend-scaffold/src/**"
+      - "frontend-scaffold/package.json"
+      - "frontend-scaffold/vite.config.ts"
+      - ".github/workflows/bundle-size.yml"
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "frontend-scaffold/src/**"
+      - "frontend-scaffold/package.json"
+      - "frontend-scaffold/vite.config.ts"
+
+jobs:
+  bundle-size:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: "frontend-scaffold/package-lock.json"
+      
+      - name: Install dependencies
+        working-directory: frontend-scaffold
+        run: npm ci
+        
+      - name: Build frontend
+        working-directory: frontend-scaffold
+        run: npm run build
+        
+      - name: Analyze bundle
+        working-directory: frontend-scaffold
+        run: node scripts/analyze-bundle.mjs
+        
+      - name: Run bundle size tests
+        working-directory: frontend-scaffold
+        run: npm test -- bundle-size.test.ts
+        
+      - name: Comment PR with bundle size
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read bundle analysis (you can also use a stored artifact)
+            const buildDir = path.join(process.env.GITHUB_WORKSPACE, 'frontend-scaffold/build');
+            
+            if (!fs.existsSync(buildDir)) {
+              console.log('Build directory not found');
+              return;
+            }
+            
+            const files = fs.readdirSync(buildDir, { recursive: true });
+            let report = '## 📦 Bundle Size Report\n\n';
+            
+            let totalSize = 0;
+            files.forEach(file => {
+              const filePath = path.join(buildDir, file);
+              if (fs.statSync(filePath).isFile()) {
+                const size = fs.statSync(filePath).size;
+                totalSize += size;
+              }
+            });
+            
+            report += `**Total Bundle Size:** ${(totalSize / 1024).toFixed(2)} KB\n`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });

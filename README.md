@@ -6,6 +6,7 @@
 [![Stellar](https://img.shields.io/badge/Stellar-Testnet-09B3AF?style=flat-square&logo=stellar)](https://stellar.org)
 [![Soroban](https://img.shields.io/badge/Soroban-Smart%20Contracts-blueviolet?style=flat-square)](https://soroban.stellar.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![codecov](https://codecov.io/gh/Akanimoh12/Stellar-Tipz/branch/main/graph/badge.svg)](https://codecov.io/gh/Akanimoh12/Stellar-Tipz)
 
 ---
 

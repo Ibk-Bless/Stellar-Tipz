@@ -3,7 +3,11 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import type { Profile } from "../../types";
 import Button from "../../components/ui/Button";
+import ShareButton from "../../components/shared/ShareButton";
+import { useWallet } from "../../hooks/useWallet";
 import { getExplorerTxUrl } from "../../helpers/network";
+import { createTipShareData } from "../../helpers/sharing";
+import TipReceipt from "./TipReceipt";
 
 interface TipResultProps {
   status: "success" | "error";
@@ -22,12 +26,17 @@ const TipResult: React.FC<TipResultProps> = ({
   errorMessage,
   onPrimaryAction,
 }) => {
+  const { publicKey } = useWallet();
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 16, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
       className="relative overflow-hidden border-2 border-black bg-white p-6"
+      role={status === "error" ? "alert" : "status"}
+      aria-live={status === "error" ? "assertive" : "polite"}
+      aria-atomic="true"
     >
       {status === "success" && (
         <>
@@ -51,18 +60,31 @@ const TipResult: React.FC<TipResultProps> = ({
               {creator ? ` to ${creator.displayName}` : ""}.
             </p>
             {txHash && (
-              <a
-                href={getExplorerTxUrl(txHash)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex text-sm font-black uppercase underline"
-              >
-                View transaction hash
-              </a>
+              <TipReceipt 
+                txHash={txHash}
+                amount={amount}
+                sender={publicKey || undefined}
+                receiver={creator?.username || creator?.displayName}
+              />
             )}
-            <Button type="button" onClick={onPrimaryAction}>
-              Send Another
-            </Button>
+            <div className="flex gap-3">
+              <Button type="button" onClick={onPrimaryAction} className="flex-1">
+                Send Another
+              </Button>
+              {creator && amount && (
+                <ShareButton
+                  type="tip"
+                  data={createTipShareData(
+                    parseFloat(amount),
+                    creator.username,
+                    undefined,
+                    true // isSender
+                  )}
+                  variant="button"
+                  size="md"
+                />
+              )}
+            </div>
           </>
         ) : (
           <>

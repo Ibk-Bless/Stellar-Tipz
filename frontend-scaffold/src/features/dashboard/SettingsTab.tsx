@@ -1,16 +1,11 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Bell,
-  Copy,
-  Pencil,
-  QrCode,
-  Share2,
-  AlertTriangle,
-} from "lucide-react";
+import { Bell, Copy, Pencil, Share2, AlertTriangle } from "lucide-react";
 
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import TipQRCode from "@/features/profile/TipQRCode";
+import { useNotificationPreferences } from "@/hooks/useTipNotifications";
 import type { Profile } from "@/types";
 
 const TIP_DOMAIN = import.meta.env.VITE_APP_URL || window.location.origin;
@@ -23,6 +18,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ profile }) => {
   const tipUrl = `${TIP_DOMAIN}/@${profile.username}`;
   const [tipCopied, setTipCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const { settings, updateSettings } = useNotificationPreferences();
 
   const copyTipUrl = async () => {
     try {
@@ -63,11 +59,13 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ profile }) => {
         </p>
         <div className="grid gap-2 border-2 border-black bg-off-white p-4 text-sm">
           <div className="flex justify-between gap-4 border-b border-gray-200 pb-2">
-            <span className="font-bold uppercase text-gray-500">Username</span>
+            <span className="font-bold uppercase text-gray-800 dark:text-gray-200">Username</span>
             <span className="font-black">@{profile.username}</span>
           </div>
           <div className="flex justify-between gap-4">
-            <span className="font-bold uppercase text-gray-500">Display name</span>
+            <span className="font-bold uppercase text-gray-800 dark:text-gray-200">
+              Display name
+            </span>
             <span className="font-black">{profile.displayName || "—"}</span>
           </div>
         </div>
@@ -98,18 +96,9 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ profile }) => {
             {tipCopied ? "Copied!" : "Copy"}
           </Button>
         </div>
-        <div>
-          <p className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-gray-500">
-            QR code
-          </p>
-          <div className="flex h-36 w-36 flex-col items-center justify-center border-3 border-black bg-gray-100">
-            <QrCode size={40} className="text-gray-400" aria-hidden />
-            <p className="mt-2 px-2 text-center text-[10px] font-bold uppercase text-gray-500">
-              QR coming soon
-            </p>
-          </div>
-        </div>
       </Card>
+
+      <TipQRCode username={profile.username} />
 
       <Card className="space-y-4" padding="lg">
         <h2 className="text-xl font-black uppercase flex items-center gap-2">
@@ -117,13 +106,24 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ profile }) => {
           Notifications
         </h2>
         <p className="text-sm font-bold text-gray-600">
-          Preferences will connect to email and push once available.
+          Control real-time tip alerts while your dashboard is open.
         </p>
         <ul className="space-y-3">
           {[
-            { id: "tips", label: "Notify me when I receive a tip" },
-            { id: "weekly", label: "Weekly summary email" },
-            { id: "product", label: "Product updates from Tipz" },
+            {
+              id: "desktop",
+              label: "Desktop notifications",
+              checked: settings.desktop,
+              onChange: (checked: boolean) =>
+                updateSettings({ desktop: checked }),
+            },
+            {
+              id: "sound",
+              label: "Sound on new tips",
+              checked: settings.sound,
+              onChange: (checked: boolean) =>
+                updateSettings({ sound: checked }),
+            },
           ].map((item) => (
             <li
               key={item.id}
@@ -138,9 +138,9 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ profile }) => {
               <input
                 id={`settings-notify-${item.id}`}
                 type="checkbox"
-                disabled
-                className="h-4 w-4 cursor-not-allowed border-2 border-black accent-black opacity-60"
-                title="Coming soon"
+                checked={item.checked}
+                onChange={(event) => item.onChange(event.target.checked)}
+                className="h-4 w-4 border-2 border-black accent-black"
               />
             </li>
           ))}
@@ -156,12 +156,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ profile }) => {
           Spread your tip page on X or copy the link anywhere.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={shareOnX}
-          >
+          <Button type="button" variant="primary" size="sm" onClick={shareOnX}>
             Share on X
           </Button>
           <Button
@@ -176,10 +171,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ profile }) => {
         </div>
       </Card>
 
-      <Card
-        className="space-y-4 border-red-600 bg-red-50"
-        padding="lg"
-      >
+      <Card className="space-y-4 border-red-600 bg-red-50" padding="lg">
         <h2 className="text-xl font-black uppercase text-red-800 flex items-center gap-2">
           <AlertTriangle size={22} aria-hidden />
           Danger Zone

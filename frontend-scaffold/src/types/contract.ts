@@ -62,6 +62,17 @@ export interface Profile {
   balance: string; // i128 as string
   registeredAt: number;
   updatedAt: number;
+  streak?: number;
+  domain?: string;
+  domainVerified?: boolean;
+  domainVerifiedAt?: number;
+  customMinTip?: string;
+  verification?: {
+    isVerified: boolean;
+    verificationType?: string;
+    verifiedAt?: number;
+    revokedAt?: number;
+  };
 }
 
 /** Tip record from the contract */
@@ -89,6 +100,16 @@ export interface ContractStats {
   totalTipsVolume: string;
   totalFeesCollected: string;
   feeBps: number;
+}
+
+/** Supporter streak for a creator/supporter pair. */
+export interface Streak {
+  supporter: string;
+  creator: string;
+  current: number;
+  longest: number;
+  lastTipDay: number | null;
+  bonusPoints: number;
 }
 
 /** Credit score tiers */

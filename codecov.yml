@@ -1,0 +1,43 @@
+coverage:
+  precision: 2
+  round: down
+  range: "60...100"
+
+  status:
+    project:
+      default:
+        target: 70%
+        threshold: 5%
+        if_not_found: success
+        if_ci_failed: error
+    patch:
+      default:
+        target: 80%
+        threshold: 5%
+        if_not_found: success
+        if_ci_failed: error
+
+  flags:
+    typescript:
+      paths:
+        - frontend-scaffold/src/
+      carryforward: true
+    rust:
+      paths:
+        - contracts/
+      carryforward: true
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+ignore:
+  - "frontend-scaffold/src/test/**"
+  - "frontend-scaffold/src/**/__tests__/**"
+  - "frontend-scaffold/src/**/*.test.ts"
+  - "frontend-scaffold/src/**/*.test.tsx"
+  - "contracts/tipz/src/test/**"
+  - "e2e/**"

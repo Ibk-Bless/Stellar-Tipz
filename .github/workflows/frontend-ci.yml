@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   frontend-checks:
-    name: Lint & Build Frontend
+    name: Frontend CI Pipeline
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -37,15 +37,40 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Test
-        run: npm test
-        continue-on-error: true
-
       - name: TypeScript type check
-        run: npm run typecheck
+        run: npx tsc --noEmit
 
-      - name: Production build
+      - name: ESLint check
+        run: npx eslint . --max-warnings 0
+
+      - name: Run tests with coverage
+        run: npx vitest run --coverage
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          directory: frontend-scaffold/coverage
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+
+      - name: Build verification
+        run: npx vite build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend-scaffold/dist/
+          retention-days: 7
+
+      - name: Report bundle size
+        run: |
+          echo "## Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          find dist -name "*.js" -o -name "*.css" | while read file; do
+            size=$(du -h "$file" | cut -f1)
+            echo "| $file | $size |" >> $GITHUB_STEP_SUMMARY
+          done
         run: npm run build

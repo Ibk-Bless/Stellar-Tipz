@@ -13,18 +13,19 @@
     "preview": "cd frontend-scaffold && npm run preview",
     "typecheck": "cd frontend-scaffold && npm run typecheck",
     "lint": "cd frontend-scaffold && npm run lint",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cd frontend-scaffold && npm run test",
+    "load:test": "k6 run scripts/load-test.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Nursca/Stellar-Tipz.git"
+    "url": "git+https://github.com/Akanimoh12/Stellar-Tipz.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/Nursca/Stellar-Tipz/issues"
+    "url": "https://github.com/Akanimoh12/Stellar-Tipz/issues"
   },
-  "homepage": "https://github.com/Nursca/Stellar-Tipz#readme"
+  "homepage": "https://github.com/Akanimoh12/Stellar-Tipz#readme"
 }

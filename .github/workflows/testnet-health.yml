@@ -1,0 +1,105 @@
+name: Testnet Health
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+  HORIZON_URL: https://horizon-testnet.stellar.org
+  STATUS_DASHBOARD_URL: https://status.stellar.org
+  CONTRACT_ID: ${{ vars.TESTNET_CONTRACT_ID || 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC' }}
+
+jobs:
+  health:
+    name: Testnet health check
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Soroban RPC
+        id: rpc
+        run: |
+          set -euo pipefail
+          curl -sf "${SOROBAN_RPC_URL}/health" -o /tmp/rpc-health.json
+          echo "RPC health: $(cat /tmp/rpc-health.json)"
+          echo "rpc_ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Check Horizon API
+        id: horizon
+        run: |
+          set -euo pipefail
+          curl -sf "${HORIZON_URL}/" -o /tmp/horizon-root.json
+          echo "Horizon reachable"
+          echo "horizon_ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Check contract accessibility
+        id: contract
+        run: |
+          set -euo pipefail
+          curl -sf "${HORIZON_URL}/accounts/${CONTRACT_ID}" -o /tmp/contract-account.json
+          echo "Contract account reachable on Horizon"
+          echo "contract_ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Record uptime snapshot
+        if: always()
+        run: |
+          mkdir -p .github/health-metrics
+          TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          RPC="${{ steps.rpc.outputs.rpc_ok == 'true' && '1' || '0' }}"
+          HORIZON="${{ steps.horizon.outputs.horizon_ok == 'true' && '1' || '0' }}"
+          CONTRACT="${{ steps.contract.outputs.contract_ok == 'true' && '1' || '0' }}"
+          TOTAL=$((RPC + HORIZON + CONTRACT))
+          PCT=$((TOTAL * 100 / 3))
+          echo "${TS},${RPC},${HORIZON},${CONTRACT},${PCT}" >> .github/health-metrics/uptime.csv
+          echo "### Testnet health — ${TS}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Check | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Soroban RPC | $([ "$RPC" = "1" ] && echo '✅' || echo '❌') |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Horizon API | $([ "$HORIZON" = "1" ] && echo '✅' || echo '❌') |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Contract account | $([ "$CONTRACT" = "1" ] && echo '✅' || echo '❌') |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Uptime this run:** ${PCT}%" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Historical Stellar network status](${STATUS_DASHBOARD_URL})" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload uptime metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testnet-health-metrics
+          path: .github/health-metrics/uptime.csv
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "Testnet health check failed" \
+            --body "$(cat <<EOF
+          Automated testnet health check failed.
+
+          - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          - **Time (UTC):** $(date -u +"%Y-%m-%d %H:%M:%S")
+          - **Soroban RPC:** ${SOROBAN_RPC_URL}
+          - **Horizon:** ${HORIZON_URL}
+          - **Contract:** ${CONTRACT_ID}
+
+          Review the workflow logs and [Stellar status dashboard](${STATUS_DASHBOARD_URL}) for details.
+          EOF
+          )" \
+            --label "testnet-health" \
+            || echo "Issue may already exist or creation was skipped"

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Skeleton from './Skeleton';
+import { useRenderCount } from '../../hooks/useRenderCount';
 
 interface ChangeProps {
   value: number;
@@ -14,16 +15,20 @@ interface StatCardProps {
   className?: string;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({
+const StatCardComponent: React.FC<StatCardProps> = ({
   label,
   value,
   icon,
   change,
   className = '',
 }) => {
-  const isPositive = change?.positive ?? false;
-  const changeValue = Math.abs(change?.value ?? 0);
-  const formattedChange = `${isPositive ? '+' : '-'}${changeValue}%`;
+  useRenderCount("StatsCard", label);
+  const isPositive = useMemo(() => change?.positive ?? false, [change?.positive]);
+  const changeValue = useMemo(() => Math.abs(change?.value ?? 0), [change?.value]);
+  const formattedChange = useMemo(
+    () => `${isPositive ? '+' : '-'}${changeValue}%`,
+    [changeValue, isPositive],
+  );
 
   return (
     <div
@@ -74,13 +79,19 @@ export const StatCard: React.FC<StatCardProps> = ({
   );
 };
 
-export default StatCard;
+const MemoizedStatCard = React.memo(StatCardComponent);
+
+export const StatCard = MemoizedStatCard;
+export { MemoizedStatCard as StatsCard };
+export default MemoizedStatCard;
 
 export const StatsCardSkeleton: React.FC = () => {
   return (
     <div
       role="status"
+      aria-live="polite"
       aria-busy="true"
+      aria-atomic="true"
       className={`
         bg-white dark:bg-zinc-950 
         border-4 border-black dark:border-white 

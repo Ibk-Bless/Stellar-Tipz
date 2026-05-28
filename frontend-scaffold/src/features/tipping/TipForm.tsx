@@ -6,6 +6,7 @@ import { useWallet } from "../../hooks";
 import { Profile } from "../../types/contract";
 import TipAmountInput from "./TipAmountInput";
 import TipMessageInput from "./TipMessageInput";
+import TipAmountPresets from "./TipAmountPresets";
 
 interface TipFormProps {
   creator: Profile;
@@ -13,7 +14,11 @@ interface TipFormProps {
   isSubmitting?: boolean;
 }
 
-const TipForm: React.FC<TipFormProps> = ({ creator, onSubmit, isSubmitting = false }) => {
+const TipForm: React.FC<TipFormProps> = ({
+  creator,
+  onSubmit,
+  isSubmitting = false,
+}) => {
   const { connected, connect } = useWallet();
   const [amount, setAmount] = useState("5");
   const [message, setMessage] = useState("");
@@ -32,15 +37,16 @@ const TipForm: React.FC<TipFormProps> = ({ creator, onSubmit, isSubmitting = fal
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <TipAmountInput 
-        amount={amount} 
-        onChange={setAmount} 
+      <TipAmountInput amount={amount} onChange={setAmount} />
+      <TipAmountPresets
+        value={amount}
+        onChange={(nextAmount) => setAmount(String(nextAmount))}
       />
 
-      <TipMessageInput 
-        message={message} 
-        onChange={setMessage} 
-        disabled={isSubmitting} 
+      <TipMessageInput
+        message={message}
+        onChange={setMessage}
+        disabled={isSubmitting}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -66,9 +72,9 @@ const TipForm: React.FC<TipFormProps> = ({ creator, onSubmit, isSubmitting = fal
           </Button>
         )}
 
-        <Button 
-          type="button" 
-          variant="outline" 
+        <Button
+          type="button"
+          variant="outline"
           onClick={() => {
             setAmount("5");
             setMessage("");

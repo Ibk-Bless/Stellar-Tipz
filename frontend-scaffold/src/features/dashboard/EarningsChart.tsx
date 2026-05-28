@@ -1,138 +1,253 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import { Coins } from "lucide-react";
+import {
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-import { stroopToXlmBigNumber, formatTimestamp } from "../../helpers/format";
-import { Tip } from "../../types/contract";
+import { stroopToXlmBigNumber } from "../../helpers/format";
+import type { Tip } from "../../types/contract";
+import { useDashboardContext } from "./DashboardContext";
 
-type Period = "week" | "month" | "all";
+type View = "daily" | "weekly" | "monthly";
 
-interface DataPoint {
-  label: string;
-  value: number;
+type EarningsDatum = { date: string; amount: number };
+
+type ChartPoint = { label: string; value: number };
+
+export interface EarningsChartProps {
+  /**
+   * Optional raw earnings data (already aggregated by date).
+   * Useful for tests or if another API provides analytics directly.
+   */
+  earningsData?: EarningsDatum[];
+  /**
+   * Optional tips list (stroops + unix timestamp seconds).
+   * If neither `tips` nor `earningsData` are provided, the component falls back to `useDashboard().tips`.
+   */
+  tips?: Tip[];
 }
 
-interface EarningsChartProps {
-  tips: Tip[];
+function startOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-const SECONDS_IN_DAY = 24 * 60 * 60;
+function addDays(d: Date, delta: number) {
+  const next = new Date(d);
+  next.setDate(next.getDate() + delta);
+  return next;
+}
 
-const EarningsChart: React.FC<EarningsChartProps> = ({ tips }) => {
-  const [period, setPeriod] = useState<Period>("week");
-  const [anchorNowSec] = useState(() => Math.floor(Date.now() / 1000));
+function formatDayLabel(d: Date) {
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
-  const chartData = useMemo(() => {
-    if (tips.length === 0) return [];
+function formatWeekLabel(d: Date) {
+  return `Wk ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+}
 
-    const now = anchorNowSec;
-    const result: DataPoint[] = [];
+function formatMonthLabel(d: Date) {
+  return d.toLocaleDateString("en-US", { month: "short" });
+}
 
-    const xlmTips = tips.map(t => ({
-        ...t,
-        amountXlm: Number(stroopToXlmBigNumber(t.amount).toFixed(7))
-    }));
+function sum(points: ChartPoint[]) {
+  return points.reduce((acc, p) => acc + p.value, 0);
+}
 
-    if (period === "week") {
-      // Last 7 days
-      for (let i = 6; i >= 0; i--) {
-        const dayStart = now - (i * SECONDS_IN_DAY);
-        const date = formatTimestamp(dayStart);
-        const label = date.toLocaleDateString("en-US", { weekday: "short" });
+function pctChange(current: number, previous: number) {
+  if (previous === 0) return current === 0 ? 0 : 100;
+  return ((current - previous) / previous) * 100;
+}
 
-        const dayTotal = xlmTips
-          .filter(t => {
-            const tDate = formatTimestamp(t.timestamp);
-            return tDate.toDateString() === date.toDateString();
-          })
-          .reduce((sum, t) => sum + t.amountXlm, 0);
+function toXlmAmountFromTip(tip: Tip) {
+  return Number(stroopToXlmBigNumber(tip.amount).toFixed(7));
+}
 
-        result.push({ label, value: dayTotal });
-      }
-    } else if (period === "month") {
-      // Last 30 days grouped in 6 blocks of 5 days
-      for (let i = 5; i >= 0; i--) {
-        const blockEnd = now - (i * 5 * SECONDS_IN_DAY);
-        const blockStart = blockEnd - (5 * SECONDS_IN_DAY);
-        const date = formatTimestamp(blockEnd);
-        const label = `${date.getMonth() + 1}/${date.getDate()}`;
-        
-        const blockTotal = xlmTips
-          .filter(t => t.timestamp > blockStart && t.timestamp <= blockEnd)
-          .reduce((sum, t) => sum + t.amountXlm, 0);
+function computeDaily(points: EarningsDatum[], days: number, now: Date) {
+  const end = startOfDay(now);
+  const start = addDays(end, -(days - 1));
 
-        result.push({ label, value: blockTotal });
-      }
-    } else {
-      // All time grouped by month (last 6 months)
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - i);
-        const month = d.getMonth();
-        const year = d.getFullYear();
-        const label = d.toLocaleDateString("en-US", { month: "short" });
+  const byDay = new Map<string, number>();
+  for (const p of points) {
+    byDay.set(p.date, (byDay.get(p.date) ?? 0) + p.amount);
+  }
 
-        const monthTotal = xlmTips
-          .filter(t => {
-            const tDate = formatTimestamp(t.timestamp);
-            return tDate.getMonth() === month && tDate.getFullYear() === year;
-          })
-          .reduce((sum, t) => sum + t.amountXlm, 0);
+  const result: ChartPoint[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = addDays(start, i);
+    const key = d.toISOString().slice(0, 10);
+    result.push({ label: formatDayLabel(d), value: byDay.get(key) ?? 0 });
+  }
 
-        result.push({ label, value: monthTotal });
-      }
+  return result;
+}
+
+function computeWeekly(points: EarningsDatum[], weeks: number, now: Date) {
+  // Week buckets start on the day `weeks-1` weeks ago
+  const end = startOfDay(now);
+  const start = addDays(end, -7 * (weeks - 1));
+
+  // Map day->amount, then roll up into 7-day windows starting at `start`
+  const byDay = new Map<string, number>();
+  for (const p of points) byDay.set(p.date, (byDay.get(p.date) ?? 0) + p.amount);
+
+  const result: ChartPoint[] = [];
+  for (let w = 0; w < weeks; w++) {
+    const wStart = addDays(start, w * 7);
+    let total = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(wStart, i);
+      const key = d.toISOString().slice(0, 10);
+      total += byDay.get(key) ?? 0;
     }
+    result.push({ label: formatWeekLabel(wStart), value: total });
+  }
 
-    return result;
-  }, [tips, period, anchorNowSec]);
+  return result;
+}
 
-  const maxValue = Math.max(...chartData.map(d => d.value), 1);
+function computeMonthly(points: EarningsDatum[], months: number, now: Date) {
+  const result: ChartPoint[] = [];
+  const byMonth = new Map<string, number>(); // YYYY-MM -> amount
+  for (const p of points) {
+    const k = p.date.slice(0, 7);
+    byMonth.set(k, (byMonth.get(k) ?? 0) + p.amount);
+  }
+
+  const d = new Date(now.getFullYear(), now.getMonth(), 1);
+  d.setMonth(d.getMonth() - (months - 1));
+
+  for (let i = 0; i < months; i++) {
+    const cur = new Date(d.getFullYear(), d.getMonth() + i, 1);
+    const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}`;
+    result.push({ label: formatMonthLabel(cur), value: byMonth.get(key) ?? 0 });
+  }
+  return result;
+}
+
+function buildEarningsFromTips(tips: Tip[]) {
+  const byDay = new Map<string, number>();
+  for (const tip of tips) {
+    const tsMs = tip.timestamp < 1_000_000_000_000 ? tip.timestamp * 1000 : tip.timestamp;
+    const d = startOfDay(new Date(tsMs));
+    const key = d.toISOString().slice(0, 10);
+    byDay.set(key, (byDay.get(key) ?? 0) + toXlmAmountFromTip(tip));
+  }
+  return Array.from(byDay.entries())
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([date, amount]) => ({ date, amount }));
+}
+
+const EarningsChart: React.FC<EarningsChartProps> = ({ tips, earningsData }) => {
+  const dashboard = useDashboardContext();
+  const resolvedTips = tips ?? dashboard.tips;
+  const resolvedEarnings = earningsData ?? buildEarningsFromTips(resolvedTips);
+
+  const [view, setView] = React.useState<View>("weekly");
+
+  const now = React.useMemo(() => new Date(), []);
+
+  const { series, previousSeries, title } = React.useMemo(() => {
+    if (view === "daily") {
+      const days = 14;
+      const series = computeDaily(resolvedEarnings, days, now);
+      const prevNow = addDays(now, -days);
+      const previousSeries = computeDaily(resolvedEarnings, days, prevNow);
+      return { series, previousSeries, title: "This period" };
+    }
+    if (view === "weekly") {
+      const weeks = 8;
+      const series = computeWeekly(resolvedEarnings, weeks, now);
+      const prevNow = addDays(now, -(weeks * 7));
+      const previousSeries = computeWeekly(resolvedEarnings, weeks, prevNow);
+      return { series, previousSeries, title: "This week" };
+    }
+    const months = 12;
+    const series = computeMonthly(resolvedEarnings, months, now);
+    const prevNow = new Date(now.getFullYear(), now.getMonth() - months, 1);
+    const previousSeries = computeMonthly(resolvedEarnings, months, prevNow);
+    return { series, previousSeries, title: "This month" };
+  }, [resolvedEarnings, view, now]);
+
+  const total = sum(series);
+  const prevTotal = sum(previousSeries);
+  const change = pctChange(total, prevTotal);
+  const changePositive = change >= 0;
+
+  const hasData = resolvedEarnings.length > 0 && series.some((p) => p.value > 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h3 className="text-xl font-black uppercase">Earnings over time</h3>
+    <div className="space-y-5" data-testid="earnings-chart">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
+            Earnings analytics
+          </p>
+          <h3 className="text-xl font-black uppercase">{title}</h3>
+          <div className="flex flex-wrap items-center gap-3 text-sm font-bold">
+            <span className="text-black">{total.toFixed(2)} XLM</span>
+            <span className={changePositive ? "text-emerald-700" : "text-red-700"}>
+              {changePositive ? "+" : ""}
+              {change.toFixed(0)}% vs last period
+            </span>
+          </div>
+        </div>
+
         <div className="flex border-2 border-black bg-white">
-          {(["week", "month", "all"] as Period[]).map((p) => (
+          {(["daily", "weekly", "monthly"] as const).map((v, idx, arr) => (
             <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-1.5 text-xs font-black uppercase transition-colors ${
-                period === p ? "bg-black text-white" : "hover:bg-gray-100"
-              } ${p !== "all" ? "border-r-2 border-black" : ""}`}
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              className={`px-4 py-2 text-xs font-black uppercase transition-colors ${
+                view === v ? "bg-black text-white" : "hover:bg-gray-100"
+              } ${idx !== arr.length - 1 ? "border-r-2 border-black" : ""}`}
             >
-              {p}
+              {v === "daily" ? "Daily" : v === "weekly" ? "Weekly" : "Monthly"}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="relative border-2 border-black bg-white p-6 pb-2">
-        {chartData.length === 0 ? (
-          <div className="flex h-48 flex-col items-center justify-center space-y-3 bg-gray-50 text-gray-400">
+      <div className="border-2 border-black bg-white p-4 sm:p-6">
+        {!hasData ? (
+          <div className="flex h-56 flex-col items-center justify-center gap-3 bg-gray-50 text-gray-800 dark:text-gray-200">
             <Coins size={32} />
-            <div className="h-[2px] w-full bg-gray-200" />
-            <p className="text-sm font-bold uppercase tracking-widest">No earnings yet</p>
+            <p className="text-sm font-black uppercase tracking-widest">No earnings yet</p>
           </div>
         ) : (
-          <div className="flex h-48 items-end gap-2 md:gap-4">
-            {chartData.map((point, index) => {
-              const heightPercentage = (point.value / maxValue) * 100;
-              return (
-                <div key={`${point.label}-${index}`} className="group relative flex flex-1 flex-col items-center">
-                  <div 
-                    className="w-full border-2 border-black bg-black transition-all hover:bg-yellow-400"
-                    style={{ height: `${Math.max(heightPercentage, 2)}%` }}
-                  >
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 rounded border-2 border-black bg-white px-2 py-1 text-[10px] font-black opacity-0 transition-opacity group-hover:opacity-100">
-                      {point.value.toFixed(1)} XLM
-                    </div>
-                  </div>
-                  <span className="mt-2 text-[10px] font-black uppercase text-gray-500 md:text-xs">
-                    {point.label}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="h-56 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={series} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 10, fontWeight: 900 }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis tick={{ fontSize: 10, fontWeight: 900 }} width={44} />
+                <Tooltip
+                  formatter={(value: any) => [`${Number(value).toFixed(2)} XLM`, "Earnings"]}
+                  contentStyle={{
+                    border: "2px solid #000",
+                    borderRadius: 0,
+                    fontWeight: 900,
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#000"
+                  strokeWidth={3}
+                  dot={false}
+                  isAnimationActive
+                  animationDuration={600}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         )}
       </div>

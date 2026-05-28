@@ -6,7 +6,7 @@ use soroban_sdk::{Env, String};
 
 use crate::errors::ContractError;
 use crate::validation::{
-    validate_bio, validate_display_name, validate_image_url, validate_username,
+    validate_bio, validate_display_name, validate_image_url, validate_username, validate_x_handle,
 };
 
 // ───────────────────────── helpers ──────────────────────────
@@ -464,4 +464,33 @@ fn image_url_valid_data_uri() {
         validate_image_url(&s(&env, "data:image/png;base64,iVBORw0KGgoAAAANS")),
         Ok(())
     );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// X HANDLE VALIDATION TESTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_valid_x_handles() {
+    let env = Env::default();
+    assert!(validate_x_handle(&s(&env, "@alice_123")).is_ok());
+    assert!(validate_x_handle(&s(&env, "bob")).is_ok());
+    assert!(validate_x_handle(&s(&env, "@a")).is_ok());
+    assert!(validate_x_handle(&s(&env, "123456789012345")).is_ok());
+    assert!(validate_x_handle(&s(&env, "@123456789012345")).is_ok());
+}
+
+#[test]
+fn test_invalid_x_handles() {
+    let env = Env::default();
+    // Too long (handle part > 15)
+    assert!(validate_x_handle(&s(&env, "1234567890123456")).is_err());
+    assert!(validate_x_handle(&s(&env, "@1234567890123456")).is_err());
+    // Invalid characters
+    assert!(validate_x_handle(&s(&env, "@hello world")).is_err());
+    assert!(validate_x_handle(&s(&env, "@hello!@#")).is_err());
+    // Empty
+    assert!(validate_x_handle(&s(&env, "")).is_err());
+    // Just @
+    assert!(validate_x_handle(&s(&env, "@")).is_err());
 }

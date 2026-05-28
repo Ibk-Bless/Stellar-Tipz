@@ -92,7 +92,7 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({ onUploadSuccess, defaultIma
         {preview ? (
           <img src={preview} alt="Avatar preview" className="w-full h-full object-cover" />
         ) : (
-          <div className="text-gray-400 flex flex-col items-center">
+          <div className="text-gray-700 dark:text-gray-300 flex flex-col items-center">
             <svg className="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
@@ -110,7 +110,11 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({ onUploadSuccess, defaultIma
         data-testid="avatar-input"
       />
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && (
+        <p role="alert" aria-live="assertive" className="text-red-500 text-sm">
+          {error}
+        </p>
+      )}
 
       {file && (
         <button

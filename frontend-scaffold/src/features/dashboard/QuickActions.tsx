@@ -80,7 +80,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   return (
     <section className="space-y-4">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+        <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
           Quick actions
         </p>
         <h2 className="mt-2 text-2xl font-black uppercase">Move fast</h2>

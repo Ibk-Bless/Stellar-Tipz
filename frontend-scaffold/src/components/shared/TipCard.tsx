@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useMemo } from "react";
 import Avatar from "../ui/Avatar";
 import Card from "../ui/Card";
 import AmountDisplay from "./AmountDisplay";
 import type { Tip } from "../../types";
 import { truncateString } from "../../helpers/format";
 import Skeleton from "../ui/Skeleton";
+import { useRenderCount } from "../../hooks/useRenderCount";
 
 interface TipCardProps {
   tip: Tip;
@@ -38,18 +39,44 @@ const TipCard: React.FC<TipCardProps> = ({
   showSender = true,
   showReceiver = true,
 }) => {
-  const primaryAddress = showSender ? tip.tipper : tip.creator;
-  const primaryLabel = showSender ? "From" : "To";
-  const secondaryAddress =
-    showSender && showReceiver ? tip.creator : showReceiver ? tip.tipper : null;
-  const secondaryLabel =
-    showSender && showReceiver ? "To" : showReceiver ? "From" : null;
+  useRenderCount("TipCard", `${tip.tipper}:${tip.creator}:${tip.timestamp}`);
+
+  const primaryAddress = useMemo(
+    () => (showSender ? tip.tipper : tip.creator),
+    [showSender, tip.creator, tip.tipper],
+  );
+  const primaryLabel = useMemo(() => (showSender ? "From" : "To"), [showSender]);
+  const secondaryAddress = useMemo(
+    () =>
+      showSender && showReceiver
+        ? tip.creator
+        : showReceiver
+          ? tip.tipper
+          : null,
+    [showReceiver, showSender, tip.creator, tip.tipper],
+  );
+  const secondaryLabel = useMemo(
+    () => (showSender && showReceiver ? "To" : showReceiver ? "From" : null),
+    [showReceiver, showSender],
+  );
+  const primaryAddressLabel = useMemo(
+    () => truncateString(primaryAddress),
+    [primaryAddress],
+  );
+  const secondaryAddressLabel = useMemo(
+    () => (secondaryAddress ? truncateString(secondaryAddress) : null),
+    [secondaryAddress],
+  );
+  const relativeTimestamp = useMemo(
+    () => formatRelativeTimestamp(tip.timestamp),
+    [tip.timestamp],
+  );
 
   return (
     <button
       type="button"
       className="block w-full text-left"
-      aria-label={`Open tip card for ${truncateString(primaryAddress)}`}
+      aria-label={`Open tip card for ${primaryAddressLabel}`}
     >
       <Card hover className="space-y-4">
         <div className="flex items-start justify-between gap-4">
@@ -60,15 +87,15 @@ const TipCard: React.FC<TipCardProps> = ({
               size="md"
             />
             <div className="min-w-0">
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
                 {primaryLabel}
               </p>
               <p className="truncate text-sm font-black">
-                {truncateString(primaryAddress)}
+                {primaryAddressLabel}
               </p>
-              {secondaryAddress && secondaryLabel && (
+              {secondaryAddressLabel && secondaryLabel && (
                 <p className="mt-1 truncate text-xs font-bold text-gray-600">
-                  {secondaryLabel}: {truncateString(secondaryAddress)}
+                  {secondaryLabel}: {secondaryAddressLabel}
                 </p>
               )}
             </div>
@@ -91,11 +118,11 @@ const TipCard: React.FC<TipCardProps> = ({
         </p>
 
         <div className="flex items-center justify-between border-t-2 border-dashed border-black pt-3">
-          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
             Tip activity
           </span>
           <span className="text-xs font-bold">
-            {formatRelativeTimestamp(tip.timestamp)}
+            {relativeTimestamp}
           </span>
         </div>
       </Card>
@@ -103,7 +130,7 @@ const TipCard: React.FC<TipCardProps> = ({
   );
 };
 
-export default TipCard;
+export default React.memo(TipCard);
 
 export const TipCardSkeleton: React.FC = () => {
   return (

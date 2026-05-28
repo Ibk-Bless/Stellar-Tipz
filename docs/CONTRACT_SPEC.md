@@ -305,3 +305,343 @@ Dry-run preview for batch X metric updates. Admin-only.
 > Contract-wide config and counters live in `instance()` storage, profile
 > records live in `persistent()` storage, and tip history plus reverse tip
 > indexes live in `temporary()` storage.
+
+---
+
+## Formal Invariants
+
+This section defines the properties the contract **must** maintain at all times. Each invariant is identified by an `INV-` code that maps to a corresponding test case in `contracts/src/test/`.
+
+---
+
+### INV-S: Storage Invariants
+
+**INV-S-1 — Initialization guard**
+
+```
+Initialized == true  ⟹  initialize() reverts with AlreadyInitialized
+```
+
+Once `DataKey::Initialized` is written as `true`, any subsequent call to
+`initialize()` must panic with `ContractError::AlreadyInitialized`. This
+prevents re-initialization attacks.
+
+*Test*: `test_security::test_double_initialize`
+
+---
+
+**INV-S-2 — Profile–username index consistency**
+
+```
+∀ address a:
+  Profile(a) exists  ⟺  UsernameToAddress(Profile(a).username) == a
+```
+
+Whenever a `Profile` entry exists under address `a`, the reverse mapping
+`UsernameToAddress` for that profile's `username` must resolve back to `a`, and
+vice versa. Both entries have their TTLs bumped together to stay in sync.
+
+*Test*: `test_profiles::test_profile_username_consistency`
+
+---
+
+**INV-S-3 — TotalCreators monotonicity**
+
+```
+register_profile() increases TotalCreators by exactly 1
+deregister_profile() decreases TotalCreators by exactly 1
+```
+
+`DataKey::TotalCreators` strictly tracks the number of currently registered
+profiles. No other operation may modify this counter.
+
+*Test*: `test_profiles::test_total_creators_counter`
+
+---
+
+**INV-S-4 — TipCount monotonicity**
+
+```
+∀ tip t: TipCount_after(t) == TipCount_before(t) + 1
+```
+
+The global tip counter (`DataKey::TipCount`) is strictly monotonically
+increasing. It is incremented by exactly 1 for each successful `send_tip` call
+and is never decremented.
+
+*Test*: `test_tipping::test_tip_count_monotonic`
+
+---
+
+**INV-S-5 — Paused gate**
+
+```
+Paused == true  ⟹  send_tip(), register_profile(), withdraw_tips() all revert
+```
+
+While the emergency pause flag is set, all state-mutating user operations must
+revert. Admin-only operations (`set_fee`, `unpause_contract`, etc.) are exempt.
+
+*Test*: `test_security::test_paused_contract`
+
+---
+
+### INV-C: Credit Score Invariants
+
+**INV-C-1 — Bounded credit score**
+
+```
+∀ profile p: 0 ≤ p.credit_score ≤ 100
+```
+
+The credit score is always within the closed interval `[0, 100]`. The scoring
+algorithm must clamp its output before writing it back to storage.
+
+*Test*: `test_credit::test_credit_score_bounds`
+
+---
+
+**INV-C-2 — Credit score monotonicity on tip receipt**
+
+```
+let s_before = profile.credit_score;
+send_tip(creator = a, amount > 0);
+let s_after  = profile.credit_score;
+s_after ≥ s_before
+```
+
+Receiving a valid tip can only increase or maintain a creator's credit score; it
+must never decrease it. Score decreases are only permitted by explicit
+admin-driven metric updates.
+
+*Test*: `test_credit::test_credit_non_decreasing_on_tip`
+
+---
+
+**INV-C-3 — Score components are non-negative**
+
+```
+∀ component c in CreditBreakdown: c ≥ 0
+```
+
+Each individual scoring component (tip volume score, tip count score, X
+engagement score) must be a non-negative value that sums to at most 100.
+
+*Test*: `test_credit::test_credit_breakdown_non_negative`
+
+---
+
+### INV-F: Fee Invariants
+
+**INV-F-1 — Fee is bounded**
+
+```
+0 ≤ fee_bps ≤ 10_000
+```
+
+The fee expressed in basis points must satisfy this range (0 % to 100 %).
+`set_fee()` must revert with `ContractError::InvalidFee` for any value outside
+this range.
+
+*Test*: `test_admin::test_fee_bounds`
+
+---
+
+**INV-F-2 — Fee deducted from withdrawal, not tip**
+
+```
+let fee   = amount * fee_bps / 10_000;
+let net   = amount - fee;
+
+creator_receives == net
+fee_collector_receives == fee
+fee + net == amount
+```
+
+The fee is applied exclusively at withdrawal time. The creator's balance is
+debited by the full `amount`; the creator's wallet receives `net`; the fee
+collector's wallet receives `fee`. The two payout amounts must sum to `amount`.
+
+*Test*: `test_tipping::test_withdrawal_fee_arithmetic`
+
+---
+
+**INV-F-3 — Cumulative fees do not exceed total volume**
+
+```
+TotalFeesCollected ≤ TotalTipsVolume
+```
+
+The lifetime fees collected can never exceed the lifetime tip volume, since fees
+are a fraction of withdrawals and withdrawals are bounded by received tips.
+
+*Test*: `test_tipping::test_fees_leq_volume`
+
+---
+
+**INV-F-4 — TotalFeesCollected is monotonically non-decreasing**
+
+```
+∀ withdraw call w:
+  TotalFeesCollected_after(w) ≥ TotalFeesCollected_before(w)
+```
+
+Each successful withdrawal either increases `TotalFeesCollected` (fee > 0) or
+leaves it unchanged (fee_bps == 0). It is never reduced.
+
+*Test*: `test_tipping::test_fees_monotonic`
+
+---
+
+### INV-L: Leaderboard Invariants
+
+**INV-L-1 — Leaderboard ordering**
+
+```
+∀ i < j in Leaderboard:
+  Leaderboard[i].total_tips_received ≥ Leaderboard[j].total_tips_received
+```
+
+Entries in `DataKey::Leaderboard` are sorted in descending order of
+`total_tips_received`. After each `send_tip` that refreshes the leaderboard,
+this ordering must hold.
+
+*Test*: `test_leaderboard::test_leaderboard_sorted`
+
+---
+
+**INV-L-2 — Leaderboard entries reference registered profiles**
+
+```
+∀ entry e in Leaderboard:
+  Profile(e.address) exists
+```
+
+Every address appearing in the leaderboard must correspond to an active,
+registered profile. Deregistered profiles must be removed from the leaderboard.
+
+*Test*: `test_leaderboard::test_leaderboard_registered_only`
+
+---
+
+**INV-L-3 — Leaderboard values are consistent with profiles**
+
+```
+∀ entry e in Leaderboard:
+  e.total_tips_received == Profile(e.address).total_tips_received
+  e.username            == Profile(e.address).username
+  e.credit_score        == Profile(e.address).credit_score
+```
+
+Leaderboard entries are a denormalised snapshot. Whenever a profile is mutated
+(tip received, metrics updated), the corresponding leaderboard entry must be
+refreshed atomically in the same transaction.
+
+*Test*: `test_leaderboard::test_leaderboard_profile_consistency`
+
+---
+
+### INV-P: Profile Uniqueness Invariants
+
+**INV-P-1 — Username uniqueness**
+
+```
+∀ address a, b where a ≠ b:
+  Profile(a).username ≠ Profile(b).username
+```
+
+No two registered profiles may share the same username. `register_profile()` must
+check `UsernameToAddress(username)` before writing and revert with
+`ContractError::UsernameTaken` if the username is already mapped to any address.
+
+*Test*: `test_profiles::test_username_unique`
+
+---
+
+**INV-P-2 — Address uniqueness**
+
+```
+∀ address a: at most one Profile exists under DataKey::Profile(a)
+```
+
+A given Stellar address can have at most one registered creator profile. A
+second call to `register_profile()` from the same `caller` must revert with
+`ContractError::AlreadyRegistered`.
+
+*Test*: `test_profiles::test_address_unique`
+
+---
+
+**INV-P-3 — Deregistration clears all profile state**
+
+```
+deregister_profile(a) ⟹
+  Profile(a) does not exist
+  ∧ UsernameToAddress(old_username) does not exist
+  ∧ a not in Leaderboard
+  ∧ TotalCreators decreased by 1
+```
+
+After `deregister_profile`, all storage entries associated with the caller's
+profile — the `Profile` record, the username reverse mapping, and any leaderboard
+entry — must be removed atomically.
+
+*Test*: `test_profiles::test_deregister_clears_state`
+
+---
+
+### INV-T: State Machine Transitions
+
+The contract lifecycle can be described as the following state machine.
+
+```
+[Uninitialized]
+      │  initialize()
+      ▼
+  [Active] ◄────────────────────────────────────────────────────────────┐
+      │                                                                  │
+      │  pause_contract()                                               │
+      ▼                                                                  │
+  [Paused]  ──── unpause_contract() ────────────────────────────────────┘
+```
+
+| From          | Trigger              | To            | Guard                              |
+| ------------- | -------------------- | ------------- | ---------------------------------- |
+| Uninitialized | `initialize()`       | Active        | `Initialized` must be `false`      |
+| Active        | `pause_contract()`   | Paused        | caller must be `Admin`             |
+| Paused        | `unpause_contract()` | Active        | caller must be `Admin`             |
+| Active        | `register_profile()` | Active        | username not taken, address unique |
+| Active        | `send_tip()`         | Active        | contract not paused, amount ≥ min  |
+| Active        | `withdraw_tips()`    | Active        | contract not paused, balance ≥ amt |
+| Active/Paused | `set_admin()`        | Active/Paused | caller must be current `Admin`     |
+| Active/Paused | `propose_admin()`    | Active/Paused | caller must be current `Admin`     |
+| Active/Paused | `accept_admin()`     | Active/Paused | caller must be `PendingAdmin`      |
+
+All state transitions that modify critical counters or balances must be atomic:
+the Soroban SDK's single-execution model guarantees this by design (no partial
+state commits).
+
+---
+
+### Invariant–Test Mapping
+
+| Invariant | Test file                 | Test function                                  |
+| --------- | ------------------------- | ---------------------------------------------- |
+| INV-S-1   | `test_security.rs`        | `test_double_initialize`                       |
+| INV-S-2   | `test_profiles.rs`        | `test_profile_username_consistency`            |
+| INV-S-3   | `test_profiles.rs`        | `test_total_creators_counter`                  |
+| INV-S-4   | `test_tipping.rs`         | `test_tip_count_monotonic`                     |
+| INV-S-5   | `test_security.rs`        | `test_paused_contract`                         |
+| INV-C-1   | `test_credit.rs`          | `test_credit_score_bounds`                     |
+| INV-C-2   | `test_credit.rs`          | `test_credit_non_decreasing_on_tip`            |
+| INV-C-3   | `test_credit.rs`          | `test_credit_breakdown_non_negative`           |
+| INV-F-1   | `test_admin.rs`           | `test_fee_bounds`                              |
+| INV-F-2   | `test_tipping.rs`         | `test_withdrawal_fee_arithmetic`               |
+| INV-F-3   | `test_tipping.rs`         | `test_fees_leq_volume`                         |
+| INV-F-4   | `test_tipping.rs`         | `test_fees_monotonic`                          |
+| INV-L-1   | `test_leaderboard.rs`     | `test_leaderboard_sorted`                      |
+| INV-L-2   | `test_leaderboard.rs`     | `test_leaderboard_registered_only`             |
+| INV-L-3   | `test_leaderboard.rs`     | `test_leaderboard_profile_consistency`         |
+| INV-P-1   | `test_profiles.rs`        | `test_username_unique`                         |
+| INV-P-2   | `test_profiles.rs`        | `test_address_unique`                          |
+| INV-P-3   | `test_profiles.rs`        | `test_deregister_clears_state`                 |

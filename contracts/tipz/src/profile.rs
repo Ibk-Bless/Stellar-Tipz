@@ -5,7 +5,7 @@ use soroban_sdk::{Address, Env, String};
 use crate::errors::ContractError;
 use crate::events;
 use crate::storage;
-use crate::types::Profile;
+use crate::types::{Profile, ProfileWithDeactivation};
 use crate::validation;
 
 /// Register a new creator profile.
@@ -56,6 +56,29 @@ pub fn register_profile(
     validation::validate_display_name(&display_name)?;
     validation::validate_bio(&bio)?;
     validation::validate_image_url(&image_url)?;
+    // x_handle is optional: only validate and normalize if non-empty.
+    let normalized_x = if !x_handle.is_empty() {
+        validation::validate_x_handle(&x_handle)?;
+        // Normalize: prepend @ if missing.
+        let mut handle_buf = [0u8; 16];
+        let n = x_handle.len() as usize;
+        x_handle.copy_into_slice(&mut handle_buf[..n]);
+        if handle_buf[0] != b'@' {
+            let mut full_buf = [0u8; 17];
+            full_buf[0] = b'@';
+            x_handle.copy_into_slice(&mut full_buf[1..1 + n]);
+            // SAFETY: x_handle is validated to be alphanumeric/underscore ASCII.
+            if let Ok(s) = core::str::from_utf8(&full_buf[..1 + n]) {
+                String::from_str(env, s)
+            } else {
+                x_handle.clone()
+            }
+        } else {
+            x_handle.clone()
+        }
+    } else {
+        x_handle.clone()
+    };
 
     // --- Duplicate checks ---
 
@@ -77,8 +100,10 @@ pub fn register_profile(
         username: username.clone(),
         display_name,
         bio,
+        website: String::from_str(env, ""),
         image_url,
-        x_handle,
+        social_links: soroban_sdk::Map::new(env),
+        x_handle: normalized_x,
         x_followers: 0,
         x_engagement_avg: 0,
         // Base credit score assigned at registration.
@@ -88,6 +113,16 @@ pub fn register_profile(
         balance: 0,
         registered_at: now,
         updated_at: now,
+        verification: crate::types::VerificationStatus {
+            is_verified: false,
+            verification_type: crate::types::VerificationType::Unverified,
+            verified_at: None,
+            revoked_at: None,
+        },
+        domain: String::from_str(env, ""),
+        domain_verified: false,
+        domain_verified_at: None,
+        custom_min_tip: None,
     };
 
     storage::set_profile(env, &profile);
@@ -147,7 +182,24 @@ pub fn update_profile(
     }
 
     if let Some(ref handle) = x_handle {
-        profile.x_handle = handle.clone();
+        validation::validate_x_handle(handle)?;
+
+        // Normalize x_handle: prepend @ if missing.
+        let mut normalized_x = handle.clone();
+        let mut handle_buf = [0u8; 16];
+        let n = handle.len() as usize;
+        handle.copy_into_slice(&mut handle_buf[..n]);
+        if handle_buf[0] != b'@' {
+            let mut full_buf = [0u8; 17];
+            full_buf[0] = b'@';
+            let n = handle.len() as usize;
+            handle.copy_into_slice(&mut full_buf[1..1 + n]);
+            if let Ok(s) = core::str::from_utf8(&full_buf[..1 + n]) {
+                normalized_x = String::from_str(env, s);
+            }
+        }
+
+        profile.x_handle = normalized_x;
     }
 
     profile.updated_at = env.ledger().timestamp();
@@ -160,6 +212,95 @@ pub fn update_profile(
 
     events::emit_profile_updated(env, &caller);
 
+    Ok(())
+}
+
+/// Load profile plus deactivation flags for read-only queries.
+pub fn get_profile_with_deactivation(
+    env: &Env,
+    address: &Address,
+) -> Result<ProfileWithDeactivation, ContractError> {
+    refresh_domain_verification_status(env, address);
+    let profile = storage::get_profile_opt(env, address).ok_or(ContractError::NotRegistered)?;
+    storage::bump_existing_profile_ttl(env, address);
+    storage::bump_username_ttl(env, &profile.username);
+    let deactivated_at = storage::get_profile_deactivated_at(env, address);
+    let is_deactivated = deactivated_at.is_some();
+    Ok(ProfileWithDeactivation {
+        profile,
+        is_deactivated,
+        deactivated_at,
+    })
+}
+
+/// Temporarily deactivate a creator profile (self or admin moderation).
+///
+/// Removes the creator from the leaderboard and blocks new tips. Data and balance stay on-chain.
+pub fn deactivate_profile(
+    env: &Env,
+    caller: Address,
+    creator: Address,
+) -> Result<(), ContractError> {
+    storage::extend_instance_ttl(env);
+    crate::admin::require_not_paused(env)?;
+
+    if !storage::has_profile(env, &creator) {
+        return Err(ContractError::NotRegistered);
+    }
+
+    if caller == creator {
+        caller.require_auth();
+    } else {
+        crate::admin::require_admin(env, &caller)?;
+    }
+
+    if storage::is_profile_deactivated(env, &creator) {
+        return Err(ContractError::AlreadyDeactivated);
+    }
+
+    let now = env.ledger().timestamp();
+    storage::set_profile_deactivated_at(env, &creator, now);
+    crate::leaderboard::remove_from_all_leaderboards(env, &creator);
+
+    let username = storage::get_profile(env, &creator).username.clone();
+    storage::bump_profile_ttl(env, &creator);
+    storage::bump_username_ttl(env, &username);
+
+    events::emit_profile_deactivated(env, &creator, &caller);
+    Ok(())
+}
+
+/// Restore a deactivated profile (owner or admin).
+pub fn reactivate_profile(
+    env: &Env,
+    caller: Address,
+    creator: Address,
+) -> Result<(), ContractError> {
+    storage::extend_instance_ttl(env);
+    crate::admin::require_not_paused(env)?;
+
+    if !storage::has_profile(env, &creator) {
+        return Err(ContractError::NotRegistered);
+    }
+
+    if caller == creator {
+        caller.require_auth();
+    } else {
+        crate::admin::require_admin(env, &caller)?;
+    }
+
+    if !storage::is_profile_deactivated(env, &creator) {
+        return Err(ContractError::ProfileNotDeactivated);
+    }
+
+    storage::clear_profile_deactivation(env, &creator);
+    let profile = storage::get_profile(env, &creator);
+    crate::leaderboard::update_all_leaderboards(env, &profile, 0);
+
+    storage::bump_profile_ttl(env, &creator);
+    storage::bump_username_ttl(env, &profile.username);
+
+    events::emit_profile_reactivated(env, &creator, &caller);
     Ok(())
 }
 
@@ -200,13 +341,15 @@ pub fn deregister_profile(env: &Env, caller: Address) -> Result<(), ContractErro
         return Err(ContractError::BalanceNotZero);
     }
 
+    storage::clear_profile_deactivation(env, &caller);
+
     // 4.4: Storage cleanup operations
     storage::remove_profile(env, &caller);
     storage::remove_username_address(env, &profile.username);
     storage::decrement_total_creators(env);
 
     // 4.5: Leaderboard removal
-    crate::leaderboard::remove_from_leaderboard(env, &caller);
+    crate::leaderboard::remove_from_all_leaderboards(env, &caller);
 
     // 4.6: Tip index cleanup — reset temporary storage indices so that
     // stale counts cannot cause index collisions on re-registration.
@@ -217,4 +360,181 @@ pub fn deregister_profile(env: &Env, caller: Address) -> Result<(), ContractErro
     events::emit_profile_deregistered(env, &caller, &profile.username);
 
     Ok(())
+}
+
+/// Set a custom donation page configuration for a creator
+pub fn set_donation_page(
+    env: &Env,
+    creator: &Address,
+    config: crate::types::DonationPageConfig,
+) -> Result<(), ContractError> {
+    storage::extend_instance_ttl(env);
+    crate::admin::require_not_paused(env)?;
+    creator.require_auth();
+
+    if !storage::has_profile(env, creator) {
+        return Err(ContractError::NotRegistered);
+    }
+
+    // Validate config
+    if config.welcome_message.len() > 500 {
+        return Err(ContractError::MessageTooLong);
+    }
+
+    if config.suggested_amounts.len() > 6 {
+        return Err(ContractError::InvalidAmount);
+    }
+
+    if config.header_image_uri.len() > 256 {
+        return Err(ContractError::InvalidImageUrl);
+    }
+
+    // Validate theme color format (basic check for hex color)
+    if !config.theme_color.is_empty() && config.theme_color.len() != 7 {
+        return Err(ContractError::InvalidAmount); // Reusing error for invalid format
+    }
+
+    storage::set_donation_page(env, creator, &config);
+    events::emit_donation_page_updated(env, creator);
+
+    Ok(())
+}
+
+/// Get donation page configuration for a creator
+pub fn get_donation_page(
+    env: &Env,
+    creator: &Address,
+) -> Result<crate::types::DonationPageConfig, ContractError> {
+    if !storage::has_profile(env, creator) {
+        return Err(ContractError::NotRegistered);
+    }
+
+    // Return custom config if exists, otherwise return default
+    if let Some(config) = storage::get_donation_page(env, creator) {
+        Ok(config)
+    } else {
+        // Return default config
+        let mut default_amounts = soroban_sdk::Vec::new(env);
+        default_amounts.push_back(5_000_000); // 5 XLM
+        default_amounts.push_back(10_000_000); // 10 XLM
+        default_amounts.push_back(25_000_000); // 25 XLM
+        default_amounts.push_back(50_000_000); // 50 XLM
+
+        Ok(crate::types::DonationPageConfig {
+            welcome_message: String::from_str(env, "Support my work!"),
+            suggested_amounts: default_amounts,
+            theme_color: String::from_str(env, "#3b82f6"),
+            header_image_uri: String::from_str(env, ""),
+            is_default: true,
+        })
+    }
+}
+
+/// Set a custom minimum tip amount for the caller's profile.
+///
+/// Pass `0` to reset to the global minimum.
+pub fn set_min_tip(
+    env: &Env,
+    creator: Address,
+    min_amount: i128,
+) -> Result<(), ContractError> {
+    storage::extend_instance_ttl(env);
+    crate::admin::require_not_paused(env)?;
+    creator.require_auth();
+
+    if !storage::has_profile(env, &creator) {
+        return Err(ContractError::NotRegistered);
+    }
+
+    if min_amount == 0 {
+        let mut profile = storage::get_profile(env, &creator);
+        profile.custom_min_tip = None;
+        profile.updated_at = env.ledger().timestamp();
+        storage::set_profile(env, &profile);
+        storage::bump_profile_ttl(env, &creator);
+        storage::bump_username_ttl(env, &profile.username);
+        events::emit_creator_min_tip_updated(env, &creator, None);
+        return Ok(());
+    }
+
+    if min_amount < 0 {
+        return Err(ContractError::InvalidAmount);
+    }
+
+    let mut profile = storage::get_profile(env, &creator);
+    profile.custom_min_tip = Some(min_amount);
+    profile.updated_at = env.ledger().timestamp();
+    storage::set_profile(env, &profile);
+    storage::bump_profile_ttl(env, &creator);
+    storage::bump_username_ttl(env, &profile.username);
+    events::emit_creator_min_tip_updated(env, &creator, Some(min_amount));
+    Ok(())
+}
+
+/// Return the effective minimum tip amount for a creator.
+pub fn get_creator_min_tip(env: &Env, creator: &Address) -> Result<i128, ContractError> {
+    if !storage::has_profile(env, creator) {
+        return Err(ContractError::NotRegistered);
+    }
+    Ok(storage::get_effective_creator_min_tip(env, creator))
+}
+
+/// Set the domain to verify via stellar.toml (marks verification as pending).
+pub fn set_domain(env: &Env, creator: Address, domain: String) -> Result<(), ContractError> {
+    storage::extend_instance_ttl(env);
+    crate::admin::require_not_paused(env)?;
+    creator.require_auth();
+
+    if !storage::has_profile(env, &creator) {
+        return Err(ContractError::NotRegistered);
+    }
+
+    validation::validate_domain(&domain)?;
+
+    let mut profile = storage::get_profile(env, &creator);
+    profile.domain = domain.clone();
+    profile.domain_verified = false;
+    profile.domain_verified_at = None;
+    profile.updated_at = env.ledger().timestamp();
+
+    storage::set_profile(env, &profile);
+    storage::bump_profile_ttl(env, &creator);
+    storage::bump_username_ttl(env, &profile.username);
+
+    events::emit_domain_set(env, &creator, &domain);
+    Ok(())
+}
+
+/// Invalidate domain verification when the re-verification interval has elapsed.
+pub fn refresh_domain_verification_status(env: &Env, creator: &Address) {
+    if !storage::has_profile(env, creator) {
+        return;
+    }
+
+    let mut profile = storage::get_profile(env, creator);
+    if !profile.domain_verified {
+        return;
+    }
+
+    let Some(verified_at) = profile.domain_verified_at else {
+        return;
+    };
+
+    let interval = storage::get_domain_reverification_interval(env);
+    let now = env.ledger().timestamp();
+    if now <= verified_at.saturating_add(interval) {
+        return;
+    }
+
+    profile.domain_verified = false;
+    profile.domain_verified_at = None;
+    profile.verification = crate::types::VerificationStatus {
+        is_verified: false,
+        verification_type: crate::types::VerificationType::Unverified,
+        verified_at: None,
+        revoked_at: Some(now),
+    };
+    profile.updated_at = now;
+    storage::set_profile(env, &profile);
+    events::emit_domain_verification_expired(env, creator);
 }

@@ -8,7 +8,7 @@
 //! Topic tuple  → `(Symbol, Symbol)`   – identifies the event type
 //! Data tuple   → `(field, field, …)`  – the payload
 
-use soroban_sdk::{symbol_short, Address, Env, String, Vec};
+use soroban_sdk::{symbol_short, Address, Env, String, Symbol, Vec};
 
 use crate::types::BatchSkip;
 
@@ -41,14 +41,31 @@ pub fn emit_profile_deregistered(env: &Env, owner: &Address, username: &String) 
     );
 }
 
+/// Topics : `("profile", "deact")` — temporary deactivation (data retained).
+pub fn emit_profile_deactivated(env: &Env, creator: &Address, actor: &Address) {
+    env.events().publish(
+        (symbol_short!("profile"), symbol_short!("deact")),
+        (creator.clone(), actor.clone()),
+    );
+}
+
+/// Topics : `("profile", "react")` — profile reactivated.
+pub fn emit_profile_reactivated(env: &Env, creator: &Address, actor: &Address) {
+    env.events().publish(
+        (symbol_short!("profile"), symbol_short!("react")),
+        (creator.clone(), actor.clone()),
+    );
+}
+
 // ── Tip events ────────────────────────────────────────────────────────────────
 
 /// Topics : `("tip", "sent")`
-/// Data   : `(id: u32, tipper: Address, creator: Address, amount: i128, message: String, timestamp: u64)`
+/// Data   : `(id: u32, tipper: Address, creator: Address, amount: i128, message: String, timestamp: u64, is_anonymous: bool)`
 ///
 /// All tip fields are included so that off-chain indexers can reconstruct the
 /// complete tip history from events alone, without relying on temporary storage
 /// which expires after ~7 days.
+#[allow(clippy::too_many_arguments)]
 pub fn emit_tip_sent(
     env: &Env,
     tip_id: u32,
@@ -57,6 +74,7 @@ pub fn emit_tip_sent(
     amount: i128,
     message: &String,
     timestamp: u64,
+    is_anonymous: bool,
 ) {
     env.events().publish(
         (symbol_short!("tip"), symbol_short!("sent")),
@@ -67,6 +85,7 @@ pub fn emit_tip_sent(
             amount,
             message.clone(),
             timestamp,
+            is_anonymous,
         ),
     );
 }
@@ -88,6 +107,15 @@ pub fn emit_credit_score_updated(env: &Env, creator: &Address, old_score: u32, n
     env.events().publish(
         (symbol_short!("credit"), symbol_short!("updated")),
         (creator.clone(), old_score, new_score),
+    );
+}
+
+/// Topics : `("streak", "milestone")`
+/// Data   : `(supporter: Address, creator: Address, current: u32)`
+pub fn emit_streak_milestone(env: &Env, supporter: &Address, creator: &Address, current: u32) {
+    env.events().publish(
+        (symbol_short!("streak"), symbol_short!("milestone")),
+        (supporter.clone(), creator.clone(), current),
     );
 }
 
@@ -129,6 +157,29 @@ pub fn emit_admin_proposal_cancelled(env: &Env, current_admin: &Address) {
     env.events().publish(
         (symbol_short!("admin"), symbol_short!("canceled")),
         current_admin.clone(),
+    );
+}
+
+/// Topics : `("admin", "chgprop")` — time-locked admin rotation proposed.
+/// Data : `(current_admin, new_admin, confirmable_after)`
+pub fn emit_admin_change_proposed(
+    env: &Env,
+    current_admin: &Address,
+    new_admin: &Address,
+    confirmable_after: u64,
+) {
+    env.events().publish(
+        (symbol_short!("admin"), symbol_short!("chgprop")),
+        (current_admin.clone(), new_admin.clone(), confirmable_after),
+    );
+}
+
+/// Topics : `("admin", "chgconf")` — time-locked admin rotation completed.
+/// Data : `(old_admin, new_admin)`
+pub fn emit_admin_change_confirmed(env: &Env, old_admin: &Address, new_admin: &Address) {
+    env.events().publish(
+        (symbol_short!("admin"), symbol_short!("chgconf")),
+        (old_admin.clone(), new_admin.clone()),
     );
 }
 
@@ -196,5 +247,289 @@ pub fn emit_x_metrics_batch_completed(
     env.events().publish(
         (symbol_short!("batch"), symbol_short!("done")),
         (processed, skipped_count, skipped_entries),
+    );
+}
+
+// ── Verification events ───────────────────────────────────────────────────────
+
+/// Topics : `("verify", "requested")`
+/// Data   : `(creator: Address, verification_type: VerificationType)`
+pub fn emit_verification_requested(
+    env: &Env,
+    creator: &Address,
+    verification_type: &crate::types::VerificationType,
+) {
+    env.events().publish(
+        (symbol_short!("verify"), symbol_short!("requested")),
+        (creator.clone(), verification_type.clone()),
+    );
+}
+
+/// Topics : `("verify", "approved")`
+/// Data   : `(creator: Address, verification_type: VerificationType)`
+pub fn emit_verification_approved(
+    env: &Env,
+    creator: &Address,
+    verification_type: &crate::types::VerificationType,
+) {
+    env.events().publish(
+        (symbol_short!("verify"), symbol_short!("approved")),
+        (creator.clone(), verification_type.clone()),
+    );
+}
+
+/// Topics : `("verify", "revoked")`
+/// Data   : `(creator: Address,)`
+pub fn emit_verification_revoked(env: &Env, creator: &Address) {
+    env.events().publish(
+        (symbol_short!("verify"), symbol_short!("revoked")),
+        (creator.clone(),),
+    );
+}
+
+// ── Subscription events ──────────────────────────────────────────────────────
+
+/// Topics : `("sub", "created")`
+pub fn emit_subscription_created(
+    env: &Env,
+    subscriber: &Address,
+    creator: &Address,
+    amount: i128,
+    interval_days: u32,
+) {
+    env.events().publish(
+        (symbol_short!("sub"), symbol_short!("created")),
+        (subscriber.clone(), creator.clone(), amount, interval_days),
+    );
+}
+
+/// Topics : `("sub", "cancel")`
+pub fn emit_subscription_cancelled(env: &Env, subscriber: &Address, creator: &Address) {
+    env.events().publish(
+        (symbol_short!("sub"), symbol_short!("cancel")),
+        (subscriber.clone(), creator.clone()),
+    );
+}
+
+/// Topics : `("sub", "exec")`
+pub fn emit_subscription_executed(
+    env: &Env,
+    subscriber: &Address,
+    creator: &Address,
+    amount: i128,
+) {
+    env.events().publish(
+        (symbol_short!("sub"), symbol_short!("exec")),
+        (subscriber.clone(), creator.clone(), amount),
+    );
+}
+
+// ── Withdrawal Scheduling events ─────────────────────────────────────────────
+
+/// Topics : `("wd", "sched")`
+#[allow(dead_code)]
+pub fn emit_withdrawal_scheduled(
+    env: &Env,
+    creator: &Address,
+    id: u32,
+    amount: i128,
+    unlock_at: u64,
+) {
+    env.events().publish(
+        (symbol_short!("wd"), symbol_short!("sched")),
+        (creator.clone(), id, amount, unlock_at),
+    );
+}
+
+/// Topics : `("wd", "exec")`
+#[allow(dead_code)]
+pub fn emit_withdrawal_executed(env: &Env, creator: &Address, id: u32, amount: i128) {
+    env.events().publish(
+        (symbol_short!("wd"), symbol_short!("exec")),
+        (creator.clone(), id, amount),
+    );
+}
+
+/// Topics : `("wd", "cancel")`
+#[allow(dead_code)]
+pub fn emit_withdrawal_cancelled(env: &Env, creator: &Address, id: u32) {
+    env.events().publish(
+        (symbol_short!("wd"), symbol_short!("cancel")),
+        (creator.clone(), id),
+    );
+}
+
+// ── Fee Distribution events ──────────────────────────────────────────────────
+
+/// Topics : `("fee", "split")`
+#[allow(dead_code)]
+pub fn emit_fee_split_updated(env: &Env, ops_pct: u32, pool_pct: u32) {
+    env.events().publish(
+        (symbol_short!("fee"), symbol_short!("split")),
+        (ops_pct, pool_pct),
+    );
+}
+
+/// Topics : `("fee", "dist")`
+#[allow(dead_code)]
+pub fn emit_fee_distributed(env: &Env, amount: i128, to_ops: bool) {
+    env.events().publish(
+        (symbol_short!("fee"), symbol_short!("dist")),
+        (amount, to_ops),
+    );
+}
+
+/// Topics : `("pool", "dist")`
+#[allow(dead_code)]
+pub fn emit_pool_distribution(env: &Env, total_amount: i128, recipient_count: u32) {
+    env.events().publish(
+        (symbol_short!("pool"), symbol_short!("dist")),
+        (total_amount, recipient_count),
+    );
+}
+
+// ── Multi-sig events ──────────────────────────────────────────────────────────
+
+/// Topics : `("proposal", "created")`
+pub fn emit_proposal_created(
+    env: &Env,
+    proposal_id: u32,
+    proposer: &Address,
+    action: &crate::multisig::Action,
+) {
+    env.events().publish(
+        (Symbol::new(env, "proposal"), symbol_short!("created")),
+        (proposal_id, proposer.clone(), action.clone()),
+    );
+}
+
+/// Topics : `("proposal", "approved")`
+pub fn emit_proposal_approved(env: &Env, proposal_id: u32, approver: &Address) {
+    env.events().publish(
+        (Symbol::new(env, "proposal"), symbol_short!("approved")),
+        (proposal_id, approver.clone()),
+    );
+}
+
+/// Topics : `("proposal", "executed")`
+pub fn emit_proposal_executed(env: &Env, proposal_id: u32) {
+    env.events().publish(
+        (Symbol::new(env, "proposal"), symbol_short!("executed")),
+        proposal_id,
+    );
+}
+
+// ── Donation page events ──────────────────────────────────────────────────────
+
+/// Topics : `("donation", "config")`
+pub fn emit_donation_page_updated(env: &Env, creator: &Address) {
+    env.events().publish(
+        (Symbol::new(env, "donation"), symbol_short!("config")),
+        creator.clone(),
+    );
+}
+
+// ── Creator min tip events ────────────────────────────────────────────────────
+
+/// Topics : `("profile", "min_tip")`
+pub fn emit_creator_min_tip_updated(env: &Env, creator: &Address, amount: Option<i128>) {
+    env.events().publish(
+        (symbol_short!("profile"), symbol_short!("min_tip")),
+        (creator.clone(), amount),
+    );
+}
+
+// ── Domain verification events ────────────────────────────────────────────────
+
+/// Topics : `("domain", "set")`
+pub fn emit_domain_set(env: &Env, creator: &Address, domain: &String) {
+    env.events().publish(
+        (Symbol::new(env, "domain"), symbol_short!("set")),
+        (creator.clone(), domain.clone()),
+    );
+}
+
+/// Topics : `("domain", "verify")`
+pub fn emit_domain_verified(env: &Env, creator: &Address, domain: &String) {
+    env.events().publish(
+        (Symbol::new(env, "domain"), symbol_short!("verify")),
+        (creator.clone(), domain.clone()),
+    );
+}
+
+/// Topics : `("domain", "expired")`
+pub fn emit_domain_verification_expired(env: &Env, creator: &Address) {
+    env.events().publish(
+        (Symbol::new(env, "domain"), symbol_short!("expired")),
+        creator.clone(),
+    );
+}
+
+// ── Goal events ───────────────────────────────────────────────────────────────
+
+/// Topics : `("goal", "set")`
+pub fn emit_goal_set(env: &Env, creator: &Address, target: i128, description: &String, deadline: u64) {
+    env.events().publish(
+        (Symbol::new(env, "goal"), symbol_short!("set")),
+        (creator.clone(), target, description.clone(), deadline),
+    );
+}
+
+/// Topics : `("goal", "reached")`
+pub fn emit_goal_reached(env: &Env, creator: &Address, target: i128, raised: i128) {
+    env.events().publish(
+        (Symbol::new(env, "goal"), symbol_short!("reached")),
+        (creator.clone(), target, raised),
+    );
+}
+
+/// Topics : `("goal", "cancel")`
+pub fn emit_goal_cancelled(env: &Env, creator: &Address) {
+    env.events().publish(
+        (Symbol::new(env, "goal"), symbol_short!("cancel")),
+        creator.clone(),
+    );
+}
+
+// ── Multi-token events ────────────────────────────────────────────────────────
+
+/// Topics : `("token", "added")`
+pub fn emit_token_added(env: &Env, token: &Address, oracle: &Option<Address>) {
+    env.events().publish(
+        (Symbol::new(env, "token"), symbol_short!("added")),
+        (token.clone(), oracle.clone()),
+    );
+}
+
+/// Topics : `("token", "removed")`
+pub fn emit_token_removed(env: &Env, token: &Address) {
+    env.events().publish(
+        (Symbol::new(env, "token"), symbol_short!("removed")),
+        token.clone(),
+    );
+}
+
+/// Topics : `("tip", "token")`
+pub fn emit_tip_sent_token(
+    env: &Env,
+    tip_id: u32,
+    tipper: &Address,
+    creator: &Address,
+    amount: i128,
+    token: &Address,
+    message: &String,
+    timestamp: u64,
+) {
+    env.events().publish(
+        (symbol_short!("tip"), Symbol::new(env, "token")),
+        (
+            tip_id,
+            tipper.clone(),
+            creator.clone(),
+            amount,
+            token.clone(),
+            message.clone(),
+            timestamp,
+        ),
     );
 }

@@ -1,0 +1,21 @@
+[
+  {
+    "name": "Main Bundle",
+    "path": "dist/assets/index-*.js",
+    "limit": "200 KB",
+    "gzip": true
+  },
+  {
+    "name": "Vendor Bundle",
+    "path": "dist/assets/vendor-*.js",
+    "limit": "300 KB",
+    "gzip": true
+  },
+  {
+    "name": "Per-route Chunks",
+    "path": "dist/assets/*.js",
+    "limit": "50 KB",
+    "gzip": true,
+    "ignore": ["index-*.js", "vendor-*.js"]
+  }
+]

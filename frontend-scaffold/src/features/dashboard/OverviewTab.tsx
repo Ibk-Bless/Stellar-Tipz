@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   TrendingUp,
   Coins,
@@ -10,11 +10,12 @@ import EmptyState from "../../components/ui/EmptyState";
 import ActivityMini from "./ActivityMini";
 import QuickActions from "./QuickActions";
 import WithdrawModal from "./WithdrawModal";
-import { useDashboard } from "../../hooks/useDashboard";
 import { Tip } from "../../types/contract";
 import { stroopToXlm } from "../../helpers/format";
 import DashboardStatsSkeleton from "./DashboardStatsSkeleton";
 import Skeleton from "@/components/ui/Skeleton";
+import { useToastStore } from "@/store/toastStore";
+import { useDashboardContext } from "./DashboardContext";
 
 // Build a simple 7-day bar chart dataset from tips
 function buildWeeklyChart(tips: Tip[]) {
@@ -47,8 +48,69 @@ function countThisWeek(tips: Tip[]) {
 
 
 const OverviewTab: React.FC = () => {
-  const { profile, tips, stats, loading, error } = useDashboard();
+  const {
+    profile,
+    tips,
+    stats,
+    loading,
+    error,
+    applyOptimisticWithdrawal,
+    revertOptimisticWithdrawal,
+    refetch,
+  } = useDashboardContext();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const { addToast } = useToastStore();
+
+  const handleWithdrawSuccess = useCallback(
+    (params: { amountXlm: string; amountStroops: string; txHash: string }) => {
+      applyOptimisticWithdrawal(params.amountStroops);
+      addToast({
+        type: "success",
+        message: `Withdrawal successful: ${params.amountXlm} XLM`,
+        duration: 3500,
+      });
+      refetch();
+    },
+    [addToast, applyOptimisticWithdrawal, refetch],
+  );
+
+  const handleWithdrawFailure = useCallback(() => {
+    revertOptimisticWithdrawal();
+  }, [revertOptimisticWithdrawal]);
+
+  const openWithdraw = useCallback(() => {
+    setWithdrawOpen(true);
+  }, []);
+
+  const closeWithdraw = useCallback(() => {
+    setWithdrawOpen(false);
+  }, []);
+
+  const weeklyData = useMemo(() => buildWeeklyChart(tips), [tips]);
+  const maxBar = useMemo(
+    () => Math.max(...weeklyData.map((d) => d.total), 1),
+    [weeklyData],
+  );
+  const tipLink = useMemo(
+    () => (profile ? `${window.location.origin}/@${profile.username}` : ""),
+    [profile],
+  );
+  const totalEarnedValue = useMemo(
+    () => `${stroopToXlm(profile?.totalTipsReceived ?? "0")} XLM`,
+    [profile],
+  );
+  const tipsThisWeekValue = useMemo(
+    () => countThisWeek(tips).toString(),
+    [tips],
+  );
+  const currentBalanceValue = useMemo(
+    () => `${stroopToXlm(profile?.balance ?? "0")} XLM`,
+    [profile],
+  );
+  const trendingIcon = useMemo(() => <TrendingUp size={22} />, []);
+  const coinsIcon = useMemo(() => <Coins size={22} />, []);
+  const balanceIcon = useMemo(() => "💰", []);
+  const neutralPositiveChange = useMemo(() => ({ value: 0, positive: true }), []);
 
   if (loading && !profile) {
     return (
@@ -109,30 +171,26 @@ const OverviewTab: React.FC = () => {
     );
   }
 
-  const weeklyData = buildWeeklyChart(tips);
-  const maxBar = Math.max(...weeklyData.map((d) => d.total), 1);
-  const tipLink = `${window.location.origin}/@${profile.username}`;
-
   return (
     <div className="space-y-8">
       {/* Stats row */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Total Earned"
-          value={`${stroopToXlm(profile.totalTipsReceived)} XLM`}
-          icon={<TrendingUp size={22} />}
-          change={{ value: 0, positive: true }} // In future, calculate from tip delta
+          value={totalEarnedValue}
+          icon={trendingIcon}
+          change={neutralPositiveChange} // In future, calculate from tip delta
         />
         <StatCard
           label="Tips This Week"
-          value={countThisWeek(tips).toString()}
-          icon={<Coins size={22} />}
-          change={{ value: 0, positive: true }}
+          value={tipsThisWeekValue}
+          icon={coinsIcon}
+          change={neutralPositiveChange}
         />
         <StatCard
           label="Current Balance"
-          value={`${stroopToXlm(profile.balance)} XLM`}
-          icon="💰"
+          value={currentBalanceValue}
+          icon={balanceIcon}
         />
         <div className="flex flex-col gap-2 border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
           <p className="text-sm font-mono font-bold uppercase tracking-[3px] text-zinc-500">
@@ -149,7 +207,7 @@ const OverviewTab: React.FC = () => {
       <QuickActions
         balance={profile.balance}
         tipLink={tipLink}
-        onWithdraw={() => setWithdrawOpen(true)}
+        onWithdraw={openWithdraw}
       />
 
       {/* Mini 7-day bar chart */}
@@ -167,7 +225,7 @@ const OverviewTab: React.FC = () => {
                     title={`${day.label}: ${day.total > 0 ? stroopToXlm(String(day.total)) + " XLM" : "0"}`}
                   />
                 </div>
-                <span className="text-[10px] font-bold uppercase text-gray-500">
+                <span className="text-[10px] font-bold uppercase text-gray-800 dark:text-gray-200">
                   {day.label}
                 </span>
               </div>
@@ -184,7 +242,9 @@ const OverviewTab: React.FC = () => {
         balance={profile.balance}
         feeBps={stats?.feeBps || 200}
         minWithdrawal={10}
-        onClose={() => setWithdrawOpen(false)}
+        onClose={closeWithdraw}
+        onSuccess={handleWithdrawSuccess}
+        onFailure={handleWithdrawFailure}
       />
     </div>
   );

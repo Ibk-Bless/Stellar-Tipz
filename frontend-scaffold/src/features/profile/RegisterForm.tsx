@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
@@ -9,10 +9,11 @@ import {
   validateDisplayName,
   validateUsername,
 } from '@/helpers/validation';
-import { useContract, useUsernameCheck } from '@/hooks';
+import { useContract, useUsernameCheck, useTransactionGuard } from '@/hooks';
 import { useToastStore } from '@/store/toastStore';
 import { ProfileFormData } from '@/types/profile';
 import { categorizeError, ERRORS } from '@/helpers/error';
+import { useFormAutosave } from '@/hooks/useFormAutosave';
 
 type TxStatus = 'idle' | 'signing' | 'submitting' | 'confirming' | 'success' | 'error';
 
@@ -76,20 +77,54 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ initialImageUrl }) => {
   const { addToast } = useToastStore();
   const navigate = useNavigate();
   
+  // Transaction guard to prevent duplicate submissions
+  const { isPending: isTransactionPending, startTransaction, reset: resetTransactionGuard } = useTransactionGuard();
+  
   // Username availability check
   const { available, checking, error: availabilityError } = useUsernameCheck(form.username);
+
+  const { clearSaved: clearRegisterDraft } = useFormAutosave({
+    storageKey: 'tipz_register_form',
+    data: {
+      username: form.username,
+      displayName: form.displayName,
+      xHandle: form.xHandle,
+    },
+    onRestore: (saved) => {
+      setForm((prev) => ({
+        ...prev,
+        username: typeof saved.username === 'string' ? saved.username : prev.username,
+        displayName: typeof saved.displayName === 'string' ? saved.displayName : prev.displayName,
+        xHandle: typeof saved.xHandle === 'string' ? saved.xHandle : prev.xHandle,
+      }));
+    },
+    intervalMs: 5000,
+    ttlMs: 24 * 60 * 60 * 1000,
+    restorePrompt: 'Restore saved registration?',
+  });
+
+  React.useEffect(() => {
+    if (txStatus === 'success') {
+      clearRegisterDraft();
+    }
+  }, [txStatus, clearRegisterDraft]);
 
   const handleChange =
     (field: keyof ProfileFormData) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
-      if (errors[field]) {
+      if ((errors as Record<string, string | undefined>)[field]) {
         setErrors((prev) => ({ ...prev, [field]: undefined }));
       }
     };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Guard against submission during pending transaction
+    if (isTransactionPending) {
+      return;
+    }
 
     const validationErrors = validate(form, available, checking);
     if (Object.keys(validationErrors).length > 0) {
@@ -97,41 +132,44 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ initialImageUrl }) => {
       return;
     }
 
-    try {
-      setTxStatus('signing');
-      setTxError(undefined);
-      setTxHash(undefined);
+    await startTransaction(async () => {
+      try {
+        setTxStatus('signing');
+        setTxError(undefined);
+        setTxHash(undefined);
 
-      const formData: ProfileFormData = {
-        ...form,
-        username: form.username.trim().toLowerCase(),
-        displayName: form.displayName.trim(),
-        bio: form.bio.trim(),
-        imageUrl: form.imageUrl.trim(),
-        xHandle: form.xHandle.trim().replace(/^@/, ''),
-      };
+        const formData: ProfileFormData = {
+          ...form,
+          username: form.username.trim().toLowerCase(),
+          displayName: form.displayName.trim(),
+          bio: form.bio.trim(),
+          imageUrl: form.imageUrl.trim(),
+          xHandle: form.xHandle.trim().replace(/^@/, ''),
+        };
 
-      setTxStatus('submitting');
-      const hash = await registerProfile(formData);
+        setTxStatus('submitting');
+        const hash = await registerProfile(formData);
 
-      setTxStatus('confirming');
-      setTxHash(hash);
+        setTxStatus('confirming');
+        setTxHash(hash);
 
-      setTxStatus('success');
-      addToast({ message: 'Profile registered successfully!', type: 'success', duration: 5000 });
+        setTxStatus('success');
+        addToast({ message: 'Profile registered successfully!', type: 'success', duration: 5000 });
 
-      setTimeout(() => navigate('/profile'), 1500);
-    } catch (err) {
-      const category = categorizeError(err);
-      setTxStatus('error');
-      setTxError(category === 'network' ? ERRORS.NETWORK : ERRORS.CONTRACT);
-    }
-  };
+        setTimeout(() => navigate('/profile'), 1500);
+      } catch (err) {
+        const { category } = categorizeError(err);
+        setTxStatus('error');
+        setTxError(category === 'network' ? ERRORS.NETWORK : ERRORS.CONTRACT);
+        throw err; // Re-throw to let transaction guard handle it
+      }
+    });
+  }, [form, available, checking, isTransactionPending, startTransaction, registerProfile, addToast, navigate]);
 
-  const isSubmitting = ['signing', 'submitting', 'confirming'].includes(txStatus);
+  const isSubmitting = ['signing', 'submitting', 'confirming'].includes(txStatus) || isTransactionPending;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-lg mx-auto">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6 max-w-lg mx-auto">
       {/* Username */}
       <div>
         <div className="relative">
@@ -152,14 +190,14 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ initialImageUrl }) => {
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-blue-600"></div>
               )}
               {!checking && available === true && (
-                <div className="text-green-500">
+                <div className="text-green-500" data-testid="username-available">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 </div>
               )}
               {!checking && available === false && (
-                <div className="text-red-500">
+                <div className="text-red-500" data-testid="username-taken">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
@@ -168,20 +206,32 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ initialImageUrl }) => {
             </div>
           )}
         </div>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-800 dark:text-gray-200">
           Your profile will be at {import.meta.env.VITE_APP_URL || window.location.origin}/@{form.username || 'username'}
         </p>
         {/* Availability status */}
         {form.username && !errors.username && (
           <div className="mt-1">
             {checking && (
-              <p className="text-xs text-gray-500">Checking availability...</p>
+              <p className="text-xs text-gray-800 dark:text-gray-200">Checking availability...</p>
             )}
             {!checking && available === true && (
               <p className="text-xs text-green-600">Username is available!</p>
             )}
             {!checking && available === false && (
-              <p className="text-xs text-red-600">Username is taken</p>
+              <p className="text-xs text-red-600">
+                Username is taken. Try:{' '}
+                {[`${form.username}1`, `${form.username}_`, `${form.username}x`].map((s, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="underline ml-1"
+                    onClick={() => setForm((prev: typeof form) => ({ ...prev, username: s }))}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </p>
             )}
             {availabilityError && (
               <p className="text-xs text-yellow-600">{availabilityError}</p>

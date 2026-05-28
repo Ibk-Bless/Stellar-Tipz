@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import BigNumber from "bignumber.js";
 import { stroopToXlmBigNumber } from "../../helpers/format";
 
@@ -11,7 +11,10 @@ const AmountDisplay: React.FC<AmountDisplayProps> = ({
   amount,
   className = "",
 }) => {
-  const xlmAmount = stroopToXlmBigNumber(new BigNumber(amount)).toFormat();
+  const xlmAmount = useMemo(
+    () => stroopToXlmBigNumber(new BigNumber(amount)).toFormat(),
+    [amount],
+  );
 
   return (
     <span className={`font-black tabular-nums ${className}`}>
@@ -20,4 +23,4 @@ const AmountDisplay: React.FC<AmountDisplayProps> = ({
   );
 };
 
-export default AmountDisplay;
+export default React.memo(AmountDisplay);

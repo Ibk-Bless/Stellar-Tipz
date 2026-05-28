@@ -6,7 +6,12 @@ import Skeleton from "../../components/ui/Skeleton";
 const ProfileSkeleton: React.FC = () => {
   return (
     <PageContainer maxWidth="xl" className="space-y-8 py-10">
-      <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+      <section
+        className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]"
+        role="status"
+        aria-label="Loading profile"
+        aria-busy="true"
+      >
         <Card className="space-y-6" padding="lg">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="flex items-center gap-4">
@@ -25,7 +30,9 @@ const ProfileSkeleton: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            <Skeleton lines={3} />
+            <Skeleton width="100%" height="14px" />
+            <Skeleton width="95%" height="14px" />
+            <Skeleton width="85%" height="14px" />
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -49,7 +56,8 @@ const ProfileSkeleton: React.FC = () => {
           <Skeleton height="45px" />
           <Skeleton height="45px" />
           <div className="space-y-2">
-            <Skeleton lines={2} />
+            <Skeleton width="100%" height="14px" />
+            <Skeleton width="90%" height="14px" />
           </div>
         </Card>
       </section>

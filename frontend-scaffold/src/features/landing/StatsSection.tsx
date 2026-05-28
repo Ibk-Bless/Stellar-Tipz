@@ -53,7 +53,7 @@ const StatsSection: React.FC = () => {
         console.warn('[StatsSection] Could not fetch live platform stats:', err);
         const { addToast } = useToastStore.getState();
         addToast({
-          message: categorizeError(err) === 'network' ? ERRORS.NETWORK : 'Could not fetch live platform stats.',
+          message: categorizeError(err).category === 'network' ? ERRORS.NETWORK : 'Could not fetch live platform stats.',
           type: 'error',
         });
       });
@@ -61,9 +61,14 @@ const StatsSection: React.FC = () => {
   }, []);
 
   return (
-    <section className="py-20 px-4 bg-off-white border-t-3 border-b-3 border-black">
+    <section
+      role="region"
+      aria-labelledby="stats-heading"
+      className="py-20 px-4 bg-off-white border-t-3 border-b-3 border-black"
+    >
       <div className="max-w-6xl mx-auto">
         <motion.h2
+          id="stats-heading"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}

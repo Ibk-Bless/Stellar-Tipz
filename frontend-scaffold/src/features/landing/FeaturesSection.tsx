@@ -37,9 +37,15 @@ const features = [
 
 const FeaturesSection: React.FC = () => {
   return (
-    <section id="features" className="py-20 px-4 bg-off-white border-t-3 border-b-3 border-black">
+    <section
+      id="features"
+      role="region"
+      aria-labelledby="features-heading"
+      className="py-20 px-4 bg-off-white border-t-3 border-b-3 border-black"
+    >
       <div className="max-w-6xl mx-auto">
         <motion.h2
+          id="features-heading"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}

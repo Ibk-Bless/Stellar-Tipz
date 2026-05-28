@@ -23,7 +23,7 @@ const TransactionFilters: React.FC<TransactionFiltersProps> = ({
       <div className="flex flex-col gap-1">
         <label
           htmlFor="tx-date-start"
-          className="text-xs font-black uppercase tracking-[0.2em] text-gray-500"
+          className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200"
         >
           From date
         </label>
@@ -42,7 +42,7 @@ const TransactionFilters: React.FC<TransactionFiltersProps> = ({
       <div className="flex flex-col gap-1">
         <label
           htmlFor="tx-date-end"
-          className="text-xs font-black uppercase tracking-[0.2em] text-gray-500"
+          className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200"
         >
           To date
         </label>

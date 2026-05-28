@@ -29,7 +29,7 @@ const QRCode: React.FC<QRCodeProps> = ({ url, size = 200 }) => {
   return (
     <div className="flex flex-col items-center space-y-6 text-center">
       <div className="space-y-2">
-        <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-500">
+        <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">
           Your Tipping QR
         </p>
         <h3 className="text-xl font-black uppercase">Scan to tip</h3>

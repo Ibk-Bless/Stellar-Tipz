@@ -12,7 +12,7 @@ use crate::{TipzContract, TipzContractClient};
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-fn setup() -> (Env, TipzContractClient<'static>) {
+pub(crate) fn setup() -> (Env, TipzContractClient<'static>) {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -74,7 +74,7 @@ fn test_register_success() {
     assert_eq!(profile.display_name, display_name);
     assert_eq!(profile.bio, bio);
     assert_eq!(profile.image_url, image_url);
-    assert_eq!(profile.x_handle, x_handle);
+    assert_eq!(profile.x_handle, String::from_str(&env, "@alice_x"));
     assert_eq!(profile.balance, 0);
     assert_eq!(profile.total_tips_received, 0);
     assert_eq!(profile.total_tips_count, 0);
@@ -335,10 +335,10 @@ fn test_update_display_name() {
 
     let updated = client.get_profile(&caller);
     assert_eq!(
-        updated.display_name,
+        updated.profile.display_name,
         String::from_str(&env, "Alice Updated")
     );
-    assert!(updated.updated_at > before);
+    assert!(updated.profile.updated_at > before);
 }
 
 #[test]
@@ -356,7 +356,7 @@ fn test_update_bio() {
     );
 
     let updated = client.get_profile(&caller);
-    assert_eq!(updated.bio, String::from_str(&env, "New bio text."));
+    assert_eq!(updated.profile.bio, String::from_str(&env, "New bio text."));
 }
 
 #[test]
@@ -381,8 +381,8 @@ fn test_update_partial() {
     );
 
     let updated = client.get_profile(&caller);
-    assert_eq!(updated.display_name, String::from_str(&env, "Alice"));
-    assert_eq!(updated.bio, String::from_str(&env, "updated bio only"));
+    assert_eq!(updated.profile.display_name, String::from_str(&env, "Alice"));
+    assert_eq!(updated.profile.bio, String::from_str(&env, "updated bio only"));
 }
 
 #[test]
@@ -460,7 +460,7 @@ fn test_update_requires_auth() {
     assert_eq!(result, Err(Ok(ContractError::NotRegistered)));
     let alice_profile = client.get_profile(&alice);
     assert_eq!(
-        alice_profile.display_name,
+        alice_profile.profile.display_name,
         String::from_str(&env, "Display Name")
     );
 }

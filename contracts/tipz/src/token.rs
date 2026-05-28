@@ -28,12 +28,22 @@ pub fn transfer_xlm(
     to: &Address,
     amount: i128,
 ) -> Result<(), ContractError> {
+    let sac = native_token_address(env);
+    transfer_xlm_with_token(env, &sac, from, to, amount)
+}
+
+pub fn transfer_xlm_with_token(
+    env: &Env,
+    sac: &Address,
+    from: &Address,
+    to: &Address,
+    amount: i128,
+) -> Result<(), ContractError> {
     if amount <= 0 {
         return Err(ContractError::InvalidAmount);
     }
 
-    let sac = native_token_address(env);
-    let client = token::TokenClient::new(env, &sac);
+    let client = token::TokenClient::new(env, sac);
 
     if client.balance(from) < amount {
         return Err(ContractError::InsufficientBalance);

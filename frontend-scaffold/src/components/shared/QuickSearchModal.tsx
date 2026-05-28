@@ -68,8 +68,8 @@ const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b-[3px] border-black px-4 py-3">
           <div className="flex items-center gap-2">
-            <Search size={16} className="text-gray-500" />
-            <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+            <Search size={16} className="text-gray-800 dark:text-gray-200" />
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-800 dark:text-gray-200">
               Quick search
             </span>
           </div>
@@ -92,7 +92,7 @@ const QuickSearchModal: React.FC<QuickSearchModalProps> = ({
 
         {/* Footer hint */}
         <div className="border-t-2 border-black px-4 py-2">
-          <p className="text-xs font-medium text-gray-400">
+          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
             Press{" "}
             <kbd className="border border-gray-300 px-1 font-mono text-xs">
               Esc

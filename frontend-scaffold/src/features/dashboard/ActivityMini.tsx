@@ -58,8 +58,8 @@ const ActivityMini: React.FC<ActivityMiniProps> = ({ tips, onViewAll }) => {
 
       {recentTips.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-          <Inbox size={28} className="text-gray-400" />
-          <p className="text-sm font-bold text-gray-500">
+          <Inbox size={28} className="text-gray-700 dark:text-gray-300" />
+          <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
             No tips yet — your recent activity will appear here.
           </p>
         </div>
@@ -70,7 +70,7 @@ const ActivityMini: React.FC<ActivityMiniProps> = ({ tips, onViewAll }) => {
               key={`${tip.id}-${index}`}
               className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
             >
-              <span className="w-16 flex-shrink-0 text-xs font-bold text-gray-500">
+              <span className="w-16 flex-shrink-0 text-xs font-bold text-gray-800 dark:text-gray-200">
                 {formatRelativeTime(tip.timestamp)}
               </span>
 
@@ -94,7 +94,7 @@ const ActivityMini: React.FC<ActivityMiniProps> = ({ tips, onViewAll }) => {
       )}
 
       {tips.length > MAX_TIPS && onViewAll && (
-        <p className="mt-3 border-t border-dashed border-gray-300 pt-3 text-xs font-bold text-gray-500">
+        <p className="mt-3 border-t border-dashed border-gray-300 pt-3 text-xs font-bold text-gray-800 dark:text-gray-200">
           + {tips.length - MAX_TIPS} more tip{tips.length - MAX_TIPS !== 1 ? "s" : ""}
         </p>
       )}

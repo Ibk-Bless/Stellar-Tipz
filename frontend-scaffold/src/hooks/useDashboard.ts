@@ -31,6 +31,8 @@ export interface DashboardData {
   loading: boolean;
   error: string | null;
   refetch: () => void;
+  applyOptimisticWithdrawal: (amountStroops: string) => void;
+  revertOptimisticWithdrawal: () => void;
 }
 
 /**
@@ -49,6 +51,37 @@ export const useDashboard = (): DashboardData => {
   const hasDataRef = useRef(false);
   const isFetchingRef = useRef(false);
   const isRegisteredRef = useRef(true);
+  const optimisticBalanceRef = useRef<string | null>(null);
+
+  const applyOptimisticWithdrawal = useCallback(
+    (amountStroops: string) => {
+      setProfile((prev) => {
+        if (!prev) return prev;
+        if (!/^\d+$/.test(amountStroops)) return prev;
+
+        if (optimisticBalanceRef.current === null) {
+          optimisticBalanceRef.current = prev.balance;
+        }
+
+        const nextBalance = (
+          BigInt(prev.balance || "0") - BigInt(amountStroops)
+        ).toString();
+
+        return {
+          ...prev,
+          balance: BigInt(nextBalance) < 0n ? "0" : nextBalance,
+        };
+      });
+    },
+    [setProfile],
+  );
+
+  const revertOptimisticWithdrawal = useCallback(() => {
+    const previous = optimisticBalanceRef.current;
+    if (!previous) return;
+    optimisticBalanceRef.current = null;
+    setProfile((prev) => (prev ? { ...prev, balance: previous } : prev));
+  }, [setProfile]);
 
   const fetchDashboard = useCallback(async () => {
     if (!publicKey || !connected || isFetchingRef.current || !isRegisteredRef.current) return;
@@ -107,7 +140,7 @@ export const useDashboard = (): DashboardData => {
         const err = statsResult.reason;
         console.error('Failed to fetch stats:', err);
         addToast({ 
-          message: categorizeError(err) === 'network' ? ERRORS.NETWORK : 'Could not fetch latest platform stats.', 
+          message: categorizeError(err).category === 'network' ? ERRORS.NETWORK : 'Could not fetch latest platform stats.', 
           type: 'error' 
         });
       }
@@ -165,5 +198,14 @@ export const useDashboard = (): DashboardData => {
     }
   }, [publicKey, connected, fetchDashboard]);
 
-  return { profile, tips, stats, loading, error, refetch };
+  return {
+    profile,
+    tips,
+    stats,
+    loading,
+    error,
+    refetch,
+    applyOptimisticWithdrawal,
+    revertOptimisticWithdrawal,
+  };
 };

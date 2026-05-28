@@ -27,7 +27,7 @@ const TipMessageInput: React.FC<TipMessageInputProps> = ({
         <label className="text-xs font-black uppercase tracking-[0.2em] text-gray-600">
           Message (Optional)
         </label>
-        <span className={`text-[10px] font-bold ${message.length >= maxLength ? 'text-red-600' : 'text-gray-400'}`}>
+        <span className={`text-[10px] font-bold ${message.length >= maxLength ? 'text-red-600' : 'text-gray-700 dark:text-gray-300'}`}>
           {message.length}/{maxLength}
         </span>
       </div>

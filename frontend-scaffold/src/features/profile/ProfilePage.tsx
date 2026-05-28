@@ -1,15 +1,20 @@
 import React, { useState } from "react";
-import { ExternalLink, PenSquare, Wallet2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ExternalLink, PenSquare, Wallet2, UserX } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 import PageContainer from "../../components/layout/PageContainer";
+import Breadcrumbs from "../../components/shared/Breadcrumbs";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import ErrorState from "../../components/shared/ErrorState";
+import ConfirmDialog from "../../components/shared/ConfirmDialog";
+import ShareButton from "../../components/shared/ShareButton";
 import { hasPositiveBalance } from "@/helpers/balance";
 import { useProfile, useContract } from "../../hooks";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { categorizeError } from "@/helpers/error";
+import { useToastStore } from "@/store/toastStore";
+import { createProfileShareData } from "@/helpers/sharing";
 import Skeleton from "@/components/ui/Skeleton";
 
 import ProfileView from "./ProfileView";
@@ -17,6 +22,10 @@ import ProfileStats, { ProfileStatsSkeleton } from "./ProfileStats";
 import ActivityFeed from "./ActivityFeed";
 import RegisterForm from "./RegisterForm";
 import WithdrawModal from "./WithdrawModal";
+import TipQRCode from "./TipQRCode";
+import EmbedCodeGenerator from "./EmbedCodeGenerator";
+import AchievementGallery from "@/features/achievements/AchievementGallery";
+import { useAchievements } from "@/hooks/useAchievements";
 
 /**
  * ProfilePage is a protected route that displays the connected user's profile.
@@ -25,9 +34,14 @@ import WithdrawModal from "./WithdrawModal";
  */
 const ProfilePage: React.FC = () => {
   const { profile, loading, error, isRegistered, refetch } = useProfile();
-  const { getStats } = useContract();
+  const { getStats, deregisterProfile } = useContract();
+  const { addToast } = useToastStore();
+  const navigate = useNavigate();
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isDeregisterDialogOpen, setIsDeregisterDialogOpen] = useState(false);
+  const [isDeregistering, setIsDeregistering] = useState(false);
   const [feeBps, setFeeBps] = useState(250); // Default to 250 (2.5%) as fallback
+  const { unlockedIds } = useAchievements({ tipCount: profile?.totalTipsCount ?? 0 });
 
   usePageTitle(
     loading
@@ -39,9 +53,35 @@ const ProfilePage: React.FC = () => {
 
   React.useEffect(() => {
     getStats()
-      .then(stats => setFeeBps(stats.feeBps))
-      .catch(err => console.error("Failed to fetch fee bps:", err));
+      .then((stats) => setFeeBps(stats.feeBps))
+      .catch((err) => console.error("Failed to fetch fee bps:", err));
   }, [getStats]);
+
+  const handleDeregister = async () => {
+    if (!profile) return;
+    
+    setIsDeregistering(true);
+    try {
+      await deregisterProfile();
+      addToast({
+        type: "success",
+        message: "Profile successfully deregistered",
+        duration: 5000,
+      });
+      setIsDeregisterDialogOpen(false);
+      // Navigate to home after successful deregistration
+      navigate("/");
+    } catch (err) {
+      console.error("Deregistration failed:", err);
+      addToast({
+        type: "error",
+        message: err instanceof Error ? err.message : "Failed to deregister profile",
+        duration: 5000,
+      });
+    } finally {
+      setIsDeregistering(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -121,7 +161,7 @@ const ProfilePage: React.FC = () => {
   if (error && !isRegistered) {
     return (
       <PageContainer maxWidth="xl" className="py-20">
-        <ErrorState category={categorizeError(error)} onRetry={refetch} />
+        <ErrorState category={categorizeError(error).category} onRetry={refetch} />
       </PageContainer>
     );
   }
@@ -130,6 +170,7 @@ const ProfilePage: React.FC = () => {
   if (!isRegistered) {
     return (
       <PageContainer maxWidth="xl" className="py-10">
+        <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Profile' }]} />
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-black uppercase">
@@ -153,16 +194,17 @@ const ProfilePage: React.FC = () => {
 
   return (
     <PageContainer maxWidth="xl" className="space-y-10 py-10">
+      <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Profile' }]} />
       {/* Main Profile View Card */}
-      <section>
+      <section aria-label="Profile summary">
         <ProfileView profile={profile} />
       </section>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
         <div className="space-y-10">
           {/* Stats Section */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-black uppercase tracking-tight">
+          <section role="region" aria-labelledby="profile-performance-heading" className="space-y-4">
+            <h2 id="profile-performance-heading" className="text-2xl font-black uppercase tracking-tight">
               Your Performance
             </h2>
             <ProfileStats
@@ -174,9 +216,9 @@ const ProfilePage: React.FC = () => {
           </section>
 
           {/* Activity Feed Section */}
-          <section className="space-y-4">
+          <section role="region" aria-labelledby="recent-activity-heading" className="space-y-4">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-black uppercase tracking-tight">
+              <h2 id="recent-activity-heading" className="text-2xl font-black uppercase tracking-tight">
                 Recent Activity
               </h2>
               <Link
@@ -190,10 +232,29 @@ const ProfilePage: React.FC = () => {
               <ActivityFeed address={profile.owner} limit={5} />
             </Card>
           </section>
+
+          {/* Embed Section */}
+          <section role="region" aria-labelledby="share-embed-heading" className="space-y-4">
+            <h2 id="share-embed-heading" className="text-2xl font-black uppercase tracking-tight">
+              Share & Embed
+            </h2>
+            <Card padding="lg" className="border-4 shadow-brutalist">
+              <EmbedCodeGenerator username={profile.username} />
+            </Card>
+          </section>
+
+          {/* Achievements Section */}
+          <section role="region" aria-labelledby="achievements-heading" className="space-y-4">
+            <Card padding="lg" className="border-4 shadow-brutalist">
+              <AchievementGallery unlockedIds={unlockedIds} />
+            </Card>
+          </section>
         </div>
 
         {/* Sidebar Actions */}
-        <aside className="space-y-6">
+        <aside aria-label="Profile actions" className="space-y-6">
+          <TipQRCode username={profile.username} />
+
           <Card
             className="space-y-4 border-4 bg-gray-50 shadow-brutalist"
             padding="lg"
@@ -231,6 +292,24 @@ const ProfilePage: React.FC = () => {
                 View Public Page
               </Button>
             </Link>
+
+            <ShareButton
+              type="profile"
+              data={createProfileShareData(profile.username)}
+              variant="button"
+              size="md"
+              className="w-full justify-start text-left h-14 bg-white"
+            />
+
+            <Button
+              variant="outline"
+              icon={<UserX size={18} />}
+              className="w-full justify-start text-left h-14 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+              onClick={() => setIsDeregisterDialogOpen(true)}
+              disabled={hasPositiveBalance(profile.balance)}
+            >
+              Deregister Profile
+            </Button>
           </Card>
 
           <Card
@@ -253,6 +332,25 @@ const ProfilePage: React.FC = () => {
         onClose={() => setIsWithdrawModalOpen(false)}
         balance={profile.balance}
         feeBps={feeBps}
+      />
+
+      <ConfirmDialog
+        isOpen={isDeregisterDialogOpen}
+        onClose={() => setIsDeregisterDialogOpen(false)}
+        onConfirm={handleDeregister}
+        title="Deregister Profile"
+        message={`Are you sure you want to permanently delete your profile "@${profile.username}"? This action cannot be undone.`}
+        confirmText="Deregister Profile"
+        cancelText="Keep Profile"
+        requireTyping={profile.username}
+        loading={isDeregistering}
+        consequences={[
+          "Your profile will be permanently deleted",
+          "All your profile data will be removed from the platform",
+          "Your username will become available for others to use",
+          "You will be removed from the leaderboard",
+          "You cannot recover your profile after deregistration"
+        ]}
       />
     </PageContainer>
   );

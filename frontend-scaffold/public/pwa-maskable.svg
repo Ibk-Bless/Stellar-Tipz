@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Stellar Tipz maskable icon">
+  <rect width="512" height="512" fill="#000"/>
+  <g transform="translate(0 0)">
+    <rect x="64" y="64" width="384" height="384" rx="96" fill="#000"/>
+    <g fill="#fff">
+      <path d="M256 108l22 66h70l-56 41 22 66-56-41-56 41 22-66-56-41h70z" opacity="0.95"/>
+      <path d="M176 320h160v34H176z" opacity="0.9"/>
+      <path d="M196 366h120v34H196z" opacity="0.85"/>
+    </g>
+    <circle cx="376" cy="156" r="16" fill="#ffd400"/>
+  </g>
+</svg>
+

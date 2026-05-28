@@ -1,67 +1,75 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { useWallet } from '@/hooks';
-import { useContract } from '@/hooks';
+import React, { useEffect, useState } from "react";
+import { ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+
+import { useContract, useWallet } from "@/hooks";
+import { useI18n } from "@/i18n";
 
 const CTASection: React.FC = () => {
   const [totalCreators, setTotalCreators] = useState<number>(0);
   const { connected, connect } = useWallet();
   const { getStats } = useContract();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   useEffect(() => {
     getStats()
       .then((stats) => setTotalCreators(stats.totalCreators))
       .catch(() => {
-        // Contract may not be deployed yet — display gracefully
+        // Contract may not be deployed yet; display gracefully.
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [getStats]);
 
   const handleCreateProfile = () => {
     if (!connected) {
       connect();
     } else {
-      navigate('/profile');
+      navigate("/profile");
     }
   };
 
   return (
-    <section className="py-20 px-4 bg-off-white border-t-3 border-black">
-      <div className="max-w-4xl mx-auto text-center">
+    <section
+      role="region"
+      aria-labelledby="landing-cta-heading"
+      className="border-t-3 border-black bg-off-white px-4 py-20"
+    >
+      <div className="mx-auto max-w-4xl text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-5xl md:text-6xl font-black mb-6">
-            Start Receiving Tips Today
+          <h2 id="landing-cta-heading" className="mb-6 text-5xl font-black md:text-6xl">
+            {t("landing.cta.heading")}
           </h2>
-          <p className="text-xl md:text-2xl mb-12 text-gray-700">
-            Join{' '}
-            {totalCreators > 0 ? (
-              <strong>{totalCreators.toLocaleString()} creators</strong>
-            ) : (
-              'thousands of creators'
-            )}{' '}
-            already on Tipz
+          <p className="mb-12 text-xl text-gray-700 md:text-2xl">
+            {totalCreators > 0
+              ? t("landing.cta.join", {
+                  count: totalCreators.toLocaleString(),
+                })
+              : t("landing.cta.joinFallback")}
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button className="btn-brutalist text-lg group" onClick={handleCreateProfile}>
-              Create Profile
+          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <button
+              className="btn-brutalist group text-lg"
+              data-tour-id="tour-register"
+              onClick={handleCreateProfile}
+            >
+              {t("landing.cta.createProfile")}
               <ArrowRight
-                className="inline-block ml-2 group-hover:translate-x-1 transition-transform"
+                className="ml-2 inline-block transition-transform group-hover:translate-x-1"
                 size={20}
               />
             </button>
             <button
               className="btn-brutalist-outline text-lg"
-              onClick={() => navigate('/leaderboard')}
+              data-tour-id="tour-browse-creators"
+              onClick={() => navigate("/leaderboard")}
             >
-              Browse Creators
+              {t("landing.cta.browseCreators")}
             </button>
           </div>
         </motion.div>
