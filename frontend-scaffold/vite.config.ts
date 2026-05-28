@@ -194,6 +194,8 @@ export default defineConfig({
         include: ["buffer"],
         globals: { Buffer: true },
       }),
+      // sriPlugin: adds integrity= + crossorigin=anonymous to external scripts/styles,
+      // satisfying the hash-based script-src requirement (no unsafe-inline needed).
       sriPlugin(),
       bundleAnalyzerPlugin(),
     ],

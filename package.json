@@ -7,6 +7,7 @@
     "doc": "docs"
   },
   "scripts": {
+    "prepare": "cd frontend-scaffold && npx husky ../../.husky || true",
     "dev": "cd frontend-scaffold && npm run dev",
     "start": "cd frontend-scaffold && npm run start",
     "build": "cd frontend-scaffold && npm run build",

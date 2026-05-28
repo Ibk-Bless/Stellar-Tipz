@@ -444,3 +444,7 @@ Built with ❤️ for the Scaffold Stellar Hackathon
 ⚡ **Powered by Stellar** | � **Built with Soroban** | 🛠️ **Made with Scaffold Stellar**
 
 </div>
+
+## Troubleshooting
+
+For common errors and their solutions, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).

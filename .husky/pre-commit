@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh" 2>/dev/null || true
+
+# Block staged .env files (not .env.example)
+if git diff --cached --name-only | grep -E "(^|/)\.env$" > /dev/null 2>&1; then
+  echo "ERROR: Attempting to commit a .env file. Remove it from staging."
+  exit 1
+fi
+
+# Secret pattern scan on staged files
+if git diff --cached --name-only | xargs grep -lE \
+  "(PRIVATE_KEY|SECRET_KEY|API_KEY|ACCESS_TOKEN|PASSWORD)\s*=\s*['\"][^'\"]{8,}['\"]" \
+  2>/dev/null; then
+  echo "ERROR: Possible secrets detected in staged files. Review and remove before committing."
+  exit 1
+fi
+
+# Run lint-staged in frontend-scaffold
+cd frontend-scaffold && npx lint-staged

@@ -26,8 +26,11 @@
     "audit:report": "npm audit --json > audit-report.json || true"
   },
   "lint-staged": {
-    "**/*.{ts,tsx}": [
+    "src/**/*.{ts,tsx}": [
       "eslint --fix",
+      "prettier --write"
+    ],
+    "src/**/*.{js,jsx,json,css,scss,md}": [
       "prettier --write"
     ]
   },

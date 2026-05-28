@@ -305,6 +305,43 @@ PRs are evaluated on:
 
 ---
 
+## Pre-commit Hooks
+
+Stellar Tipz uses [Husky](https://typicode.github.io/husky/) and [lint-staged](https://github.com/lint-staged/lint-staged) to enforce code quality before every commit. The hooks run automatically once you have installed dependencies.
+
+### What the pre-commit hook does
+
+1. **Blocks `.env` files from being staged.** Files named exactly `.env` are rejected. `.env.example` and other variant names are permitted.
+2. **Scans for secret patterns.** Any staged file containing a line that matches `PRIVATE_KEY`, `SECRET_KEY`, `API_KEY`, `ACCESS_TOKEN`, or `PASSWORD` followed by a quoted value of 8 or more characters triggers an error. Review and remove the offending line before committing.
+3. **Runs lint-staged** inside `frontend-scaffold/`, applying ESLint auto-fixes and Prettier formatting to all staged TypeScript and JavaScript source files.
+
+### Setup
+
+The hooks are installed automatically when you run `npm install` at the repo root (via the `prepare` script). If you cloned the repository without running install, or if hooks are not firing, run:
+
+```bash
+npm install
+```
+
+To verify the hook is in place:
+
+```bash
+ls -la .husky/
+# pre-commit should be listed and executable
+```
+
+### Skipping hooks (not recommended)
+
+If you need to make an emergency commit that bypasses the hooks (for example, to commit a work-in-progress without fixing lint errors first), you can use:
+
+```bash
+git commit --no-verify -m "wip: ..."
+```
+
+Use this sparingly. The CI pipeline enforces the same checks, so the branch will not be mergeable until they pass.
+
+---
+
 ## Questions?
 
 - Open a [Discussion](https://github.com/akan_nigeria/stellar-tipz/discussions) for general questions
