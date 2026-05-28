@@ -1,0 +1,181 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Weekly on Monday at 06:00 UTC
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  security-events: write
+
+jobs:
+  # ── JavaScript (frontend) ────────────────────────────────────────────────
+  audit-js-frontend:
+    name: Audit JS Dependencies (frontend)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend-scaffold
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend-scaffold/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run npm audit (block on high/critical)
+        run: npm audit --audit-level=high
+
+      - name: Generate JSON audit report
+        if: always()
+        run: npm audit --json > audit-report-frontend.json || true
+
+      - name: Generate SBOM
+        if: always()
+        run: npx --yes @cyclonedx/cyclonedx-npm --output-file sbom-frontend.json --output-format JSON || true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report-frontend
+          path: |
+            frontend-scaffold/audit-report-frontend.json
+            frontend-scaffold/sbom-frontend.json
+          retention-days: 30
+
+  # ── JavaScript (contracts tooling) ──────────────────────────────────────
+  audit-js-contracts:
+    name: Audit JS Dependencies (contracts)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run npm audit (block on high/critical)
+        run: npm audit --audit-level=high
+
+      - name: Generate JSON audit report
+        if: always()
+        run: npm audit --json > audit-report-contracts.json || true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report-contracts
+          path: contracts/audit-report-contracts.json
+          retention-days: 30
+
+  # ── Rust ────────────────────────────────────────────────────────────────
+  audit-rust:
+    name: Audit Rust Dependencies
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Run cargo audit (block on all advisories)
+        run: cargo audit --deny warnings
+
+      - name: Generate JSON audit report
+        if: always()
+        run: cargo audit --json > cargo-audit-report.json || true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report-rust
+          path: contracts/cargo-audit-report.json
+          retention-days: 30
+
+  # ── Auto-create issue on scheduled run if vulnerabilities found ──────────
+  report-vulnerabilities:
+    name: Report New Vulnerabilities
+    runs-on: ubuntu-latest
+    needs: [audit-js-frontend, audit-js-contracts, audit-rust]
+    if: >
+      failure() &&
+      github.event_name == 'schedule'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create vulnerability issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const title = `Security: Vulnerabilities detected in weekly audit (${new Date().toISOString().split('T')[0]})`;
+            const body = [
+              '## Weekly Security Audit — Vulnerabilities Detected',
+              '',
+              'The scheduled security audit found one or more high or critical vulnerabilities.',
+              '',
+              `**Workflow run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              'Please review the uploaded audit report artifacts and remediate before the next release.',
+              '',
+              '### Checklist',
+              '- [ ] Review `audit-report-frontend` artifact',
+              '- [ ] Review `audit-report-contracts` artifact',
+              '- [ ] Review `audit-report-rust` artifact',
+              '- [ ] Update or patch affected packages',
+              '- [ ] Re-run audit to confirm resolution',
+            ].join('\n');
+
+            // Avoid duplicate open issues for the same week
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'security',
+            });
+
+            const alreadyOpen = existing.some((i) => i.title.startsWith('Security: Vulnerabilities detected'));
+            if (!alreadyOpen) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['security', 'priority: high'],
+              });
+            }

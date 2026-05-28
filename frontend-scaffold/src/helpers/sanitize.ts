@@ -1,6 +1,16 @@
 // \p{Cc} = Unicode General Category "Control" (C0 + DEL + C1 control chars)
 const CONTROL_CHAR_RE = /\p{Cc}/gu;
 
+// Tags allowed through sanitizeHTML (no script, iframe, object, etc.)
+const ALLOWED_TAGS = new Set([
+  'strong', 'em', 'b', 'i', 'code', 'br', 'p',
+  'ul', 'ol', 'li', 'span', 'a',
+]);
+// Attributes allowed on whitelisted tags
+const ALLOWED_ATTRS = new Set(['class', 'href', 'target', 'rel']);
+// href protocols that are safe
+const SAFE_HREF_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
+
 const HTML_ENTITIES: Record<string, string> = {
   '&': '&amp;',
   '<': '&lt;',
@@ -85,4 +95,58 @@ export function sanitizeURL(url: string): string | null {
  */
 export function hasHomoglyphs(str: string): boolean {
   return LATIN_RE.test(str) && CONFUSABLE_SCRIPTS_RE.test(str);
+}
+
+/**
+ * Sanitizes an HTML string by walking the parsed DOM and removing any
+ * elements or attributes not on the allowlist. Safe for use with
+ * dangerouslySetInnerHTML. Falls back to stripping all tags in SSR contexts.
+ */
+export function sanitizeHTML(html: string): string {
+  if (typeof document === 'undefined') {
+    return html.replace(/<[^>]*>/g, '');
+  }
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = html;
+  _sanitizeNode(wrapper);
+  return wrapper.innerHTML;
+}
+
+function _sanitizeNode(node: Element): void {
+  const children = Array.from(node.childNodes);
+  for (const child of children) {
+    if (child.nodeType !== Node.ELEMENT_NODE) continue;
+    const el = child as Element;
+    const tag = el.tagName.toLowerCase();
+
+    if (!ALLOWED_TAGS.has(tag)) {
+      const text = document.createTextNode(el.textContent ?? '');
+      node.replaceChild(text, el);
+      continue;
+    }
+
+    // Strip disallowed attributes
+    for (const attr of Array.from(el.attributes)) {
+      if (!ALLOWED_ATTRS.has(attr.name)) {
+        el.removeAttribute(attr.name);
+      } else if (attr.name === 'href') {
+        // Block javascript: / data: in href
+        try {
+          const parsed = new URL(attr.value, window.location.href);
+          if (!SAFE_HREF_PROTOCOLS.has(parsed.protocol)) {
+            el.removeAttribute('href');
+          }
+        } catch {
+          el.removeAttribute('href');
+        }
+      }
+    }
+
+    // Force external links to open safely
+    if (tag === 'a') {
+      el.setAttribute('rel', 'noopener noreferrer');
+    }
+
+    _sanitizeNode(el);
+  }
 }

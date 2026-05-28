@@ -21,7 +21,9 @@
     "analyze": "npm run build && node scripts/analyze-bundle.mjs",
     "size": "size-limit",
     "size:why": "size-limit --why",
-    "prepare": "husky"
+    "prepare": "husky",
+    "audit": "npm audit --audit-level=high",
+    "audit:report": "npm audit --json > audit-report.json || true"
   },
   "lint-staged": {
     "**/*.{ts,tsx}": [
