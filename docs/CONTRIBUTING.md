@@ -8,12 +8,62 @@ Thank you for your interest in contributing to **Stellar Tipz**! This guide will
 
 1. [Code of Conduct](#code-of-conduct)
 2. [Getting Started](#getting-started)
-3. [Workflow](#workflow)
-4. [Branch Naming](#branch-naming)
-5. [Commit Messages](#commit-messages)
-6. [Pull Request Process](#pull-request-process)
-7. [Code Standards](#code-standards)
-8. [Review Criteria](#review-criteria)
+3. [Branch Strategy](#branch-strategy)
+4. [Branch Protection Rules](#branch-protection-rules)
+5. [Workflow](#workflow)
+6. [Branch Naming](#branch-naming)
+7. [Commit Messages](#commit-messages)
+8. [Pull Request Process](#pull-request-process)
+9. [Code Standards](#code-standards)
+10. [Review Criteria](#review-criteria)
+
+---
+
+## Branch Strategy
+
+We use a **trunk-based** model with short-lived feature branches:
+
+| Branch | Purpose | Merges into |
+|--------|---------|-------------|
+| `main` | Production-ready code — always deployable | — |
+| `develop` | Integration branch for in-progress work | `main` (via PR) |
+| `feature/<short-description>` | New features and enhancements | `develop` or `main` |
+| `fix/<short-description>` | Bug fixes | `main` (hot-fix) or `develop` |
+| `chore/<short-description>` | Dependency updates, refactors, CI | `develop` or `main` |
+| `docs/<short-description>` | Documentation-only changes | `main` |
+
+**Rules:**
+- Never commit directly to `main` — always open a PR.
+- Keep feature branches short-lived (< 1 week ideally).
+- Rebase or squash before merge to keep `main` history linear.
+- Delete the remote branch after it is merged.
+
+---
+
+## Branch Protection Rules
+
+The `main` branch is protected with the following settings (configured in repository Settings → Branches):
+
+| Rule | Setting |
+|------|---------|
+| Require a pull request | ✅ Enabled |
+| Required approvals | 1 reviewer minimum |
+| Dismiss stale reviews on new push | ✅ Enabled |
+| Require status checks to pass | ✅ Enabled — see CI jobs below |
+| Require branches to be up to date | ✅ Enabled |
+| Require signed commits | ✅ Enabled |
+| Allow force pushes | ❌ Disabled |
+| Allow deletions | ❌ Disabled |
+| Require linear history | ✅ Enabled (rebase or squash merge only) |
+
+**Required status checks** (must pass before merge):
+
+- `frontend-ci` — lint, type-check, unit tests
+- `contract-ci` — Soroban contract build and tests
+- `pr-checks` — PR validation (title format, linked issue)
+- `security-audit` — dependency vulnerability scan
+
+The full branch protection configuration is documented in [`.github/branch-protection.json`](../.github/branch-protection.json).
 
 ---
 
