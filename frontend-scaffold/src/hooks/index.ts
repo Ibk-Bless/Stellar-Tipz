@@ -13,3 +13,4 @@ export * from './useTransactionGuard';
 export * from './useTheme';
 export * from './useOfflineStatus';
 export * from './useReducedMotion';
+export * from './useFeatureFlag';

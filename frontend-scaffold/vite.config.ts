@@ -107,13 +107,12 @@ export default defineConfig({
     build: {
       outDir: "build",
       sourcemap: true,
-      // Enable minification
       minify: "terser",
       terserOptions: {
         compress: {
-          drop_console: false, // Keep console for debugging, set to true in production
+          drop_console: false,
           drop_debugger: true,
-          pure_funcs: ["console.debug"], // Remove debug logs
+          pure_funcs: ["console.debug"],
         },
         mangle: true,
         output: {
@@ -122,17 +121,16 @@ export default defineConfig({
       },
       rollupOptions: {
         output: {
-          // Manual chunk split to separate vendor code
+          entryFileNames: "assets/[name]-[hash].js",
+          chunkFileNames: "assets/[name]-[hash].js",
+          assetFileNames: "assets/[name]-[hash][extname]",
           manualChunks: (id) => {
-            // Keep stellar SDK in a separate chunk for better caching
             if (id.includes("node_modules/@stellar")) {
               return "stellar-sdk";
             }
-            // Keep React in separate chunk
             if (id.includes("node_modules/react")) {
               return "react-vendor";
             }
-            // Keep other large dependencies in vendor chunk
             if (id.includes("node_modules")) {
               return "vendor";
             }

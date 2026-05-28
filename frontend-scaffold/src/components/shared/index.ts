@@ -13,3 +13,4 @@ export { default as TransactionStatus } from "./TransactionStatus";
 export { default as WalletBalance } from "./WalletBalance";
 export { default as WalletConnect } from "./WalletConnect";
 export { default as WalletErrorRecovery } from "./WalletErrorRecovery";
+export { default as FeatureGate } from "./FeatureGate";

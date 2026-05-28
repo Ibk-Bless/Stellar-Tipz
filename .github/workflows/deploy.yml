@@ -50,6 +50,11 @@ jobs:
           echo "url=$URL" >> $GITHUB_OUTPUT
           echo "Deployed to: $URL"
 
+      - name: Verify deployment
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: npx tsx scripts/verify-deployment.ts
+
       - name: Comment preview URL on PR
         uses: actions/github-script@v7
         with:
@@ -103,6 +108,53 @@ jobs:
           URL=$(npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> $GITHUB_OUTPUT
           echo "Deployed to: $URL"
+
+      - name: Verify deployment
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: npx tsx scripts/verify-deployment.ts
+
+      - name: Notify deployment status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            const status = '${{ job.status }}';
+            const ref = '${{ github.ref }}';
+            const sha = '${{ github.sha }}';
+            const emoji = status === 'success' ? '✅' : '❌';
+            const message = `${emoji} Production deployment ${status}\n\n**Ref:** ${ref}\n**SHA:** ${sha.slice(0, 7)}\n**URL:** ${url}`;
+            console.log(message);
+
+  verify-deployment:
+    name: Post-Deployment Verification
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [deploy-production]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://stellar-tipz.vercel.app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run smoke tests
+        env:
+          DEPLOYMENT_URL: https://stellar-tipz.vercel.app
+        run: npx tsx scripts/verify-deployment.ts
+
+      - name: Trigger rollback on failure
+        if: failure()
+        run: |
+          echo "::error::Deployment verification failed, triggering rollback"
+          npx vercel rollback --token=${{ secrets.VERCEL_TOKEN }} --yes
 
   rollback:
     name: Rollback
