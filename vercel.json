@@ -2,6 +2,10 @@
   "buildCommand": "cd frontend-scaffold && npm install --legacy-peer-deps && npm run build",
   "outputDirectory": "frontend-scaffold/build",
   "framework": null,
+  "github": {
+    "silent": true,
+    "autoJobCancelation": true
+  },
   "rewrites": [
     {
       "source": "/(.*)",

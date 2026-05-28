@@ -142,7 +142,25 @@ echo ""
 echo "Contract initialized with 2% fee."
 echo "Native token SAC: $NATIVE_TOKEN_ID"
 echo ""
+# Generate TypeScript bindings (best-effort)
+if command -v soroban &> /dev/null; then
+    BINDINGS_DIR="frontend-scaffold/src/bindings"
+    echo "Generating contract bindings..."
+    mkdir -p "$BINDINGS_DIR"
+    if soroban contract bindings typescript \
+        --id "$CONTRACT_ID" \
+        --network testnet \
+        --output-dir "$BINDINGS_DIR" 2>/dev/null; then
+        echo "Bindings generated at $BINDINGS_DIR"
+    else
+        echo "Warning: Unable to generate bindings (may not be supported in this soroban version)"
+    fi
+fi
+
+echo ""
 echo "=== Done ==="
 echo "Contract ID: $CONTRACT_ID"
 echo "Save this in your frontend-scaffold/.env as:"
 echo "  CONTRACT_ID=$CONTRACT_ID"
+echo ""
+echo "For CI/CD consumption, contract_id is available in \$CONTRACT_ID"

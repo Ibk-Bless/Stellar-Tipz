@@ -230,7 +230,7 @@ fn test_get_profile_by_username_succeeds_when_active() {
     let (env, client, _contract_id, creator, _tipper) = setup();
 
     let profile = client.get_profile_by_username(&String::from_str(&env, "alice"));
-    assert_eq!(profile.owner, creator);
+    assert_eq!(profile.profile.owner, creator);
 }
 
 // ── TTL bumped on get_profile (read access) ─────────────────────────────────────

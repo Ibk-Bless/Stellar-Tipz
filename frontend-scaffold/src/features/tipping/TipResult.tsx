@@ -3,8 +3,10 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import type { Profile } from "../../types";
 import Button from "../../components/ui/Button";
+import ShareButton from "../../components/shared/ShareButton";
 import { useWallet } from "../../hooks/useWallet";
 import { getExplorerTxUrl } from "../../helpers/network";
+import { createTipShareData } from "../../helpers/sharing";
 import TipReceipt from "./TipReceipt";
 
 interface TipResultProps {
@@ -65,9 +67,24 @@ const TipResult: React.FC<TipResultProps> = ({
                 receiver={creator?.username || creator?.displayName}
               />
             )}
-            <Button type="button" onClick={onPrimaryAction}>
-              Send Another
-            </Button>
+            <div className="flex gap-3">
+              <Button type="button" onClick={onPrimaryAction} className="flex-1">
+                Send Another
+              </Button>
+              {creator && amount && (
+                <ShareButton
+                  type="tip"
+                  data={createTipShareData(
+                    parseFloat(amount),
+                    creator.username,
+                    undefined,
+                    true // isSender
+                  )}
+                  variant="button"
+                  size="md"
+                />
+              )}
+            </div>
           </>
         ) : (
           <>

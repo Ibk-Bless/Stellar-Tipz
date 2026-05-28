@@ -51,7 +51,7 @@ fn test_update_profile_display_name() {
     client.update_profile(&caller, &Some(new_name.clone()), &None, &None, &None);
 
     let profile = client.get_profile(&caller);
-    assert_eq!(profile.display_name, new_name);
+    assert_eq!(profile.profile.display_name, new_name);
 }
 
 #[test]
@@ -65,7 +65,7 @@ fn test_update_profile_bio() {
     client.update_profile(&caller, &None, &Some(new_bio.clone()), &None, &None);
 
     let profile = client.get_profile(&caller);
-    assert_eq!(profile.bio, new_bio);
+    assert_eq!(profile.profile.bio, new_bio);
 }
 
 #[test]
@@ -79,7 +79,7 @@ fn test_update_profile_image_url() {
     client.update_profile(&caller, &None, &None, &Some(new_url.clone()), &None);
 
     let profile = client.get_profile(&caller);
-    assert_eq!(profile.image_url, new_url);
+    assert_eq!(profile.profile.image_url, new_url);
 }
 
 #[test]
@@ -93,7 +93,7 @@ fn test_update_profile_x_handle() {
     client.update_profile(&caller, &None, &None, &None, &Some(new_handle.clone()));
 
     let profile = client.get_profile(&caller);
-    assert_eq!(profile.x_handle, String::from_str(&env, "@new_x_handle"));
+    assert_eq!(profile.profile.x_handle, String::from_str(&env, "@new_x_handle"));
 }
 
 #[test]
@@ -117,10 +117,10 @@ fn test_update_profile_multiple_fields() {
     );
 
     let profile = client.get_profile(&caller);
-    assert_eq!(profile.display_name, new_name);
-    assert_eq!(profile.bio, new_bio);
-    assert_eq!(profile.image_url, new_url);
-    assert_eq!(profile.x_handle, String::from_str(&env, "@alice_new"));
+    assert_eq!(profile.profile.display_name, new_name);
+    assert_eq!(profile.profile.bio, new_bio);
+    assert_eq!(profile.profile.image_url, new_url);
+    assert_eq!(profile.profile.x_handle, String::from_str(&env, "@alice_new"));
 }
 
 #[test]
@@ -134,12 +134,12 @@ fn test_update_profile_preserves_unchanged_fields() {
     client.update_profile(&caller, &Some(new_name.clone()), &None, &None, &None);
 
     let profile = client.get_profile(&caller);
-    assert_eq!(profile.display_name, new_name);
-    assert_eq!(profile.bio, original.bio);
-    assert_eq!(profile.image_url, original.image_url);
-    assert_eq!(profile.x_handle, original.x_handle);
-    assert_eq!(profile.username, original.username);
-    assert_eq!(profile.owner, original.owner);
+    assert_eq!(profile.profile.display_name, new_name);
+    assert_eq!(profile.profile.bio, original.bio);
+    assert_eq!(profile.profile.image_url, original.image_url);
+    assert_eq!(profile.profile.x_handle, original.x_handle);
+    assert_eq!(profile.profile.username, original.username);
+    assert_eq!(profile.profile.owner, original.owner);
 }
 
 #[test]
@@ -239,7 +239,7 @@ fn test_update_profile_updates_timestamp() {
     client.update_profile(&caller, &Some(new_name), &None, &None, &None);
 
     let profile = client.get_profile(&caller);
-    assert!(profile.updated_at >= original.updated_at);
+    assert!(profile.profile.updated_at >= original.updated_at);
 }
 
 #[test]
@@ -252,8 +252,8 @@ fn test_update_profile_no_changes() {
     client.update_profile(&caller, &None, &None, &None, &None);
 
     let profile = client.get_profile(&caller);
-    assert_eq!(profile.display_name, original.display_name);
-    assert_eq!(profile.bio, original.bio);
-    assert_eq!(profile.image_url, original.image_url);
-    assert_eq!(profile.x_handle, original.x_handle);
+    assert_eq!(profile.profile.display_name, original.display_name);
+    assert_eq!(profile.profile.bio, original.bio);
+    assert_eq!(profile.profile.image_url, original.image_url);
+    assert_eq!(profile.profile.x_handle, original.x_handle);
 }

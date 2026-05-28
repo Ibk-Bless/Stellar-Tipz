@@ -1,11 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright configuration for Stellar Tipz E2E tests
- * Configured to work with Vite dev server on port 3000
+ * Playwright configuration for Stellar Tipz E2E tests.
+ * Covers both e2e (./e2e) and visual regression (./tests/visual) suites.
+ * Configured to work with Vite dev server on port 3000.
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: '.',
+  testMatch: ['e2e/**/*.spec.ts', 'tests/visual/**/*.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

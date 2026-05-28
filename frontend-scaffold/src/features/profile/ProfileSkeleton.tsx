@@ -6,7 +6,12 @@ import Skeleton from "../../components/ui/Skeleton";
 const ProfileSkeleton: React.FC = () => {
   return (
     <PageContainer maxWidth="xl" className="space-y-8 py-10">
-      <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+      <section
+        className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]"
+        role="status"
+        aria-label="Loading profile"
+        aria-busy="true"
+      >
         <Card className="space-y-6" padding="lg">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="flex items-center gap-4">

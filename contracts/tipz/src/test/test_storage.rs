@@ -81,11 +81,11 @@ fn test_verification_status_keys_unique_across_addresses() {
     env.as_contract(&id, || {
         env.storage()
             .persistent()
-            .set(&DataKey::VerificationStatus(a), &true);
+            .set(&DataKey::VerificationRequest(a), &true);
         assert!(!env
             .storage()
             .persistent()
-            .has(&DataKey::VerificationStatus(b)));
+            .has(&DataKey::VerificationRequest(b)));
     });
 }
 
@@ -104,10 +104,7 @@ fn test_profile_vs_tipper_tip_count_keys_unique() {
         env.storage()
             .instance()
             .set(&DataKey::Profile(a.clone()), &true);
-        assert!(!env
-            .storage()
-            .instance()
-            .has(&DataKey::TipperTipCount(a)));
+        assert!(!env.storage().instance().has(&DataKey::TipperTipCount(a)));
     });
 }
 
@@ -119,10 +116,7 @@ fn test_profile_vs_creator_tip_count_keys_unique() {
         env.storage()
             .instance()
             .set(&DataKey::Profile(a.clone()), &true);
-        assert!(!env
-            .storage()
-            .instance()
-            .has(&DataKey::CreatorTipCount(a)));
+        assert!(!env.storage().instance().has(&DataKey::CreatorTipCount(a)));
     });
 }
 
@@ -134,10 +128,7 @@ fn test_tipper_vs_creator_tip_count_keys_unique() {
         env.storage()
             .instance()
             .set(&DataKey::TipperTipCount(a.clone()), &true);
-        assert!(!env
-            .storage()
-            .instance()
-            .has(&DataKey::CreatorTipCount(a)));
+        assert!(!env.storage().instance().has(&DataKey::CreatorTipCount(a)));
     });
 }
 
@@ -148,7 +139,7 @@ fn test_verification_status_vs_profile_keys_unique() {
     env.as_contract(&id, || {
         env.storage()
             .instance()
-            .set(&DataKey::VerificationStatus(a.clone()), &true);
+            .set(&DataKey::VerificationRequest(a.clone()), &true);
         assert!(!env.storage().instance().has(&DataKey::Profile(a)));
     });
 }
@@ -179,10 +170,7 @@ fn test_tipper_tip_count_key_is_deterministic() {
         env.storage()
             .temporary()
             .set(&DataKey::TipperTipCount(a.clone()), &true);
-        assert!(env
-            .storage()
-            .temporary()
-            .has(&DataKey::TipperTipCount(a)));
+        assert!(env.storage().temporary().has(&DataKey::TipperTipCount(a)));
     });
 }
 
@@ -195,10 +183,7 @@ fn test_tipper_tip_key_is_deterministic() {
         env.storage()
             .temporary()
             .set(&DataKey::TipperTip(a.clone(), n), &true);
-        assert!(env
-            .storage()
-            .temporary()
-            .has(&DataKey::TipperTip(a, n)));
+        assert!(env.storage().temporary().has(&DataKey::TipperTip(a, n)));
     });
 }
 

@@ -71,6 +71,10 @@ fn insert_profile(ctx: &TestCtx, owner: &Address) {
         registered_at: now,
         updated_at: now,
         verification: crate::types::VerificationStatus::default(),
+        domain: String::from_str(&ctx.env, ""),
+        domain_verified: false,
+        domain_verified_at: None,
+        custom_min_tip: None,
     };
     ctx.env.as_contract(&ctx.contract_id, || {
         storage::set_profile(&ctx.env, &profile);

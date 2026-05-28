@@ -119,11 +119,65 @@ pub fn validate_image_url(url: &String) -> Result<(), ContractError> {
     Ok(())
 }
 
-/// Validate a tip amount.
+/// Validate a tip amount against a single minimum threshold.
 pub fn validate_tip_amount(amount: i128, min_amount: i128) -> Result<(), ContractError> {
     if amount < min_amount {
-        return Err(ContractError::InvalidAmount);
+        return Err(ContractError::TipBelowMinimum);
     }
+    Ok(())
+}
+
+/// Validate a tip amount against the creator's effective minimum.
+///
+/// Uses the creator's custom minimum when set, otherwise the global minimum.
+/// Returns [`ContractError::BelowCreatorMinimum`] when below a custom minimum,
+/// and [`ContractError::TipBelowMinimum`] when below the global default.
+pub fn validate_tip_for_creator(
+    env: &Env,
+    creator: &Address,
+    amount: i128,
+) -> Result<(), ContractError> {
+    let effective_min = storage::get_effective_creator_min_tip(env, creator);
+    if amount >= effective_min {
+        return Ok(());
+    }
+
+    if storage::get_creator_min_tip_override(env, creator).is_some() {
+        Err(ContractError::BelowCreatorMinimum)
+    } else {
+        Err(ContractError::TipBelowMinimum)
+    }
+}
+
+/// Validate a domain name for stellar.toml verification (basic format check).
+pub fn validate_domain(domain: &String) -> Result<(), ContractError> {
+    let len = domain.len();
+    if len == 0 || len > 253 {
+        return Err(ContractError::InvalidDomain);
+    }
+
+    let mut buf = [0u8; 253];
+    domain.copy_into_slice(&mut buf[..len as usize]);
+
+    // Must contain at least one dot and valid hostname characters.
+    let mut has_dot = false;
+    for i in 0..len as usize {
+        let c = buf[i];
+        if c == b'.' {
+            has_dot = true;
+        } else if !((c >= b'a' && c <= b'z')
+            || (c >= b'A' && c <= b'Z')
+            || (c >= b'0' && c <= b'9')
+            || c == b'-')
+        {
+            return Err(ContractError::InvalidDomain);
+        }
+    }
+
+    if !has_dot {
+        return Err(ContractError::InvalidDomain);
+    }
+
     Ok(())
 }
 

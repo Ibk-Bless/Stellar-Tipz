@@ -40,6 +40,50 @@ if (!("ResizeObserver" in window)) {
   });
 }
 
+if (
+  !("localStorage" in window) ||
+  typeof window.localStorage.getItem !== "function"
+) {
+  const storage = new Map<string, string>();
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: vi.fn((key: string) => storage.get(key) ?? null),
+      setItem: vi.fn((key: string, value: string) => {
+        storage.set(key, String(value));
+      }),
+      removeItem: vi.fn((key: string) => {
+        storage.delete(key);
+      }),
+      clear: vi.fn(() => {
+        storage.clear();
+      }),
+    },
+  });
+}
+
+if (!("matchMedia" in window)) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    configurable: true,
+    value: vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
+Object.defineProperty(window, "isSecureContext", {
+  configurable: true,
+  value: true,
+});
+
 const mockWalletKit = {
   openModal: vi.fn(),
   setWallet: vi.fn(),
@@ -64,13 +108,33 @@ vi.mock("@creit.tech/stellar-wallets-kit", () => ({
   __mockWalletKit: mockWalletKit,
 }));
 
-vi.mock("@stellar/stellar-sdk", () => ({
-  Contract: sorobanMock.Contract,
-  TimeoutInfinite: 0,
-  nativeToScVal: sorobanMock.nativeToScVal,
-  xdr: sorobanMock.xdr,
-  Networks: {
-    TESTNET: "Test SDF Network ; September 2015",
-    PUBLIC: "Public Global Stellar Network ; September 2015",
-  },
-}));
+vi.mock("@stellar/stellar-sdk", async () => {
+  const actual = await vi.importActual<typeof import("@stellar/stellar-sdk")>(
+    "@stellar/stellar-sdk",
+  );
+
+  return {
+    ...actual,
+    Contract: sorobanMock.Contract,
+    TimeoutInfinite: 0,
+    nativeToScVal: sorobanMock.nativeToScVal,
+    xdr: actual.xdr ?? sorobanMock.xdr,
+    Networks: {
+      TESTNET: "Test SDF Network ; September 2015",
+      PUBLIC: "Public Global Stellar Network ; September 2015",
+    },
+    SorobanRpc: {
+      Server: vi.fn(function MockSorobanServer() {
+        return sorobanMock.server;
+      }),
+      Api: {
+        isSimulationSuccess: vi.fn((response: { error?: unknown }) => !response.error),
+        isSimulationError: vi.fn((response: { error?: unknown }) => Boolean(response.error)),
+        GetTransactionStatus: {
+          NOT_FOUND: "NOT_FOUND",
+          SUCCESS: "SUCCESS",
+        },
+      },
+    },
+  };
+});

@@ -10,3 +10,4 @@ export { default as TipCard } from "./TipCard";
 export { default as TransactionStatus } from "./TransactionStatus";
 export { default as WalletConnect } from "./WalletConnect";
 export { default as WalletSwitcher } from "./WalletSwitcher";
+export { default as Breadcrumbs } from "./Breadcrumbs";

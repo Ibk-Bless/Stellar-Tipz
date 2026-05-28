@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-type ReduceMotionPreference = 'auto' | 'always';
+export type ReduceMotionPreference = 'auto' | 'always';
 
 const SETTINGS_STORAGE_KEY = 'tipz_settings';
 export const REDUCED_MOTION_SETTINGS_EVENT = 'tipz:settings-updated';
@@ -86,4 +86,3 @@ export const useReducedMotion = (): boolean => {
 
   return reduceMotion;
 };
-

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Github, Keyboard, Menu, Moon, Sun, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -10,18 +10,17 @@ import NetworkBadge from "../shared/NetworkBadge";
 import WalletSwitcher from "../shared/WalletSwitcher";
 import Button from "../ui/Button";
 import { getModifierKey } from "../../hooks/useKeyboardShortcuts";
-import MobileMenu from "./MobileMenu";
+import MobileDrawer from "./MobileDrawer";
 
 const UNSEEN_TIPS_KEY = "tipz_unseen_tips";
 
 const Header: React.FC = () => {
-  const { connected, publicKey, connect, disconnect } = useWallet();
+  const { connected, publicKey, connect } = useWallet();
   const { theme, toggleTheme } = useTheme();
   const { pathname } = useLocation();
   const { t } = useI18n();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unseenTips, setUnseenTips] = useState(0);
-  const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const readUnseenTips = () => {
@@ -39,33 +38,7 @@ const Header: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      if (
-        mobileMenuOpen &&
-        headerRef.current &&
-        !headerRef.current.contains(event.target as Node)
-      ) {
-        setMobileMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-    };
-  }, [mobileMenuOpen]);
-
   const closeMobileMenu = () => setMobileMenuOpen(false);
-
-  const handleWalletAction = () => {
-    if (connected) {
-      disconnect();
-    } else {
-      connect();
-    }
-    closeMobileMenu();
-  };
 
   const walletLabel =
     connected && publicKey
@@ -101,7 +74,6 @@ const Header: React.FC = () => {
 
   return (
     <header
-      ref={headerRef}
       aria-label="Site header"
       className="relative z-30 border-b-3 border-black bg-white dark:border-white dark:bg-black"
     >
@@ -121,6 +93,12 @@ const Header: React.FC = () => {
             className={`text-sm font-bold uppercase tracking-wide nav-indicator ${pathname === '/leaderboard' ? 'active' : ''}`}
           >
             {t("nav.leaderboard")}
+          </Link>
+          <Link
+            to="/help"
+            className="text-sm font-bold uppercase tracking-wide hover:underline"
+          >
+            Help
           </Link>
           <Link
             to="/dashboard"
@@ -203,7 +181,7 @@ const Header: React.FC = () => {
         </button>
       </div>
 
-      <MobileMenu
+      <MobileDrawer
         isOpen={mobileMenuOpen}
         onClose={closeMobileMenu}
         navDashboard={navDashboard}

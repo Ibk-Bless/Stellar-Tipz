@@ -31,9 +31,25 @@ export const useTipz = (): UseTipzReturn => {
 
   const sendTip = useCallback(async (creator: string, amount: string, message: string): Promise<void> => {
     setState({ ...initialState, sending: true, txStatus: 'signing' });
+    const submittingTimer = window.setTimeout(() => {
+      setState((prev) =>
+        prev.sending && prev.txStatus === 'signing'
+          ? { ...prev, txStatus: 'submitting' }
+          : prev,
+      );
+    }, 900);
+    const confirmingTimer = window.setTimeout(() => {
+      setState((prev) =>
+        prev.sending && prev.txStatus === 'submitting'
+          ? { ...prev, txStatus: 'confirming' }
+          : prev,
+      );
+    }, 2400);
     try {
       // The useContract.sendTip method handles signing and submission
       const result = await contractSendTip(creator, amount, message);
+      window.clearTimeout(submittingTimer);
+      window.clearTimeout(confirmingTimer);
       
       setState((prev) => ({ 
         ...prev, 
@@ -42,6 +58,8 @@ export const useTipz = (): UseTipzReturn => {
         txHash: result // Assuming the contract method returns the tx hash/id
       }));
     } catch (err) {
+      window.clearTimeout(submittingTimer);
+      window.clearTimeout(confirmingTimer);
       console.error('Tip transaction failed:', err);
       const message = err instanceof Error ? err.message : 'Failed to send tip';
       setState((prev) => ({ 

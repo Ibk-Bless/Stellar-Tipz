@@ -6,6 +6,8 @@ interface VerificationBadgeProps {
   verificationType?: 'Identity' | 'SocialMedia' | 'Community';
   verifiedAt?: number;
   revokedAt?: number;
+  domain?: string;
+  domainVerified?: boolean;
   className?: string;
 }
 
@@ -14,8 +16,21 @@ export const VerificationBadge: React.FC<VerificationBadgeProps> = ({
   verificationType,
   verifiedAt,
   revokedAt,
+  domain,
+  domainVerified,
   className = '',
 }) => {
+  if (domainVerified && domain) {
+    return (
+      <div className={`flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-full ${className}`}>
+        <CheckCircle className="w-4 h-4 text-emerald-600" />
+        <span className="text-xs font-medium text-emerald-700">
+          Verified domain ({domain})
+        </span>
+      </div>
+    );
+  }
+
   if (!isVerified && !revokedAt) {
     return null;
   }

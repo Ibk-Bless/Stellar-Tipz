@@ -2,6 +2,9 @@ import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Achievement } from "@/hooks/useAchievements";
+import ShareButton from "@/components/shared/ShareButton";
+import { createAchievementShareData } from "@/helpers/sharing";
+import { useProfile } from "@/hooks/useProfile";
 
 interface AchievementNotificationProps {
   achievement: Achievement | null;
@@ -18,6 +21,8 @@ const AchievementNotification: React.FC<AchievementNotificationProps> = ({
   onDismiss,
   autoDismissMs = 4000,
 }) => {
+  const { profile } = useProfile();
+
   useEffect(() => {
     if (!achievement) return;
     const timer = setTimeout(onDismiss, autoDismissMs);
@@ -54,6 +59,16 @@ const AchievementNotification: React.FC<AchievementNotificationProps> = ({
             <p className="mt-1 text-xs font-bold text-gray-800">
               {achievement.description}
             </p>
+            {profile && (
+              <div className="mt-2">
+                <ShareButton
+                  type="achievement"
+                  data={createAchievementShareData(achievement.label, profile.username)}
+                  variant="icon"
+                  size="sm"
+                />
+              </div>
+            )}
           </div>
 
           {/* Dismiss */}

@@ -146,6 +146,21 @@ pub enum DataKey {
     CreatorPeriodVolume(Address, crate::types::LeaderboardPeriod, u64),
 }
 
+/// Extended storage keys for new features (separate enum to avoid size limits)
+#[contracttype]
+pub enum ExtendedDataKey {
+    /// Active goal for a creator
+    ActiveGoal(Address),
+    /// Archived goals for a creator
+    ArchivedGoals(Address),
+    /// Accepted token configuration by token address
+    AcceptedToken(Address),
+    /// List of all accepted token addresses
+    AcceptedTokenList,
+    /// Token balance for a creator by (creator, token)
+    TokenBalance(Address, Address),
+}
+
 /// Storage keys for compact performance caches.
 #[contracttype]
 pub enum CacheKey {
@@ -166,6 +181,8 @@ pub struct RuntimeConfig {
     pub paused: bool,
     pub min_tip_amount: i128,
     pub rate_limit: RateLimitConfig,
+    /// Domain re-verification interval in seconds (default 30 days)
+    pub domain_reverify_secs: u64,
 }
 
 /// All leaderboard periods cached under one key for write-heavy operations.
@@ -301,6 +318,41 @@ pub fn set_min_tip_amount(env: &Env, amount: i128) {
     update_runtime_config(env, |config| {
         config.min_tip_amount = amount;
     });
+}
+
+/// Default domain re-verification interval: 30 days.
+pub const DEFAULT_DOMAIN_REVERIFICATION_INTERVAL: u64 = 2_592_000;
+
+/// Returns the configured domain re-verification interval in seconds.
+pub fn get_domain_reverification_interval(env: &Env) -> u64 {
+    if let Some(config) = get_runtime_config(env) {
+        if config.domain_reverify_secs > 0 {
+            return config.domain_reverify_secs;
+        }
+    }
+    DEFAULT_DOMAIN_REVERIFICATION_INTERVAL
+}
+
+/// Sets the domain re-verification interval in seconds (admin only).
+pub fn set_domain_reverification_interval(env: &Env, interval_secs: u64) {
+    update_runtime_config(env, |config| {
+        config.domain_reverify_secs = interval_secs;
+    });
+}
+
+/// Returns the effective minimum tip for a creator (custom override or global default).
+pub fn get_effective_creator_min_tip(env: &Env, creator: &Address) -> i128 {
+    if let Some(profile) = get_profile_opt(env, creator) {
+        if let Some(custom) = profile.custom_min_tip {
+            return custom;
+        }
+    }
+    get_min_tip_amount(env)
+}
+
+/// Returns a creator's custom minimum tip override from their profile, if set.
+pub fn get_creator_min_tip_override(env: &Env, creator: &Address) -> Option<i128> {
+    get_profile_opt(env, creator).and_then(|p| p.custom_min_tip)
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1301,6 +1353,10 @@ mod tests {
             registered_at: 0,
             updated_at: 0,
             verification: crate::types::VerificationStatus::default(),
+            domain: String::from_str(&env, ""),
+            domain_verified: false,
+            domain_verified_at: None,
+            custom_min_tip: None,
         };
         env.as_contract(&id, || {
             set_profile(&env, &profile);
@@ -1330,6 +1386,10 @@ mod tests {
             registered_at: 100,
             updated_at: 200,
             verification: crate::types::VerificationStatus::default(),
+            domain: String::from_str(&env, ""),
+            domain_verified: false,
+            domain_verified_at: None,
+            custom_min_tip: None,
         };
         env.as_contract(&id, || {
             set_profile(&env, &profile);
@@ -1478,6 +1538,10 @@ mod tests {
             registered_at: 0,
             updated_at: 0,
             verification: crate::types::VerificationStatus::default(),
+            domain: String::from_str(&env, ""),
+            domain_verified: false,
+            domain_verified_at: None,
+            custom_min_tip: None,
         };
         env.as_contract(&id, || {
             // Set profile
@@ -1612,4 +1676,82 @@ pub fn set_creator_last_active(env: &Env, creator: &Address, timestamp: u64) {
     env.storage()
         .persistent()
         .set(&DataKey::CreatorLastActive(creator.clone()), &timestamp);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Goal storage functions
+// ──────────────────────────────────────────────────────────────────────────────
+
+pub fn get_active_goal(env: &Env, creator: &Address) -> Option<crate::types::Goal> {
+    env.storage()
+        .persistent()
+        .get(&ExtendedDataKey::ActiveGoal(creator.clone()))
+}
+
+pub fn set_active_goal(env: &Env, creator: &Address, goal: &crate::types::Goal) {
+    env.storage()
+        .persistent()
+        .set(&ExtendedDataKey::ActiveGoal(creator.clone()), goal);
+}
+
+pub fn get_archived_goals(env: &Env, creator: &Address) -> soroban_sdk::Vec<crate::types::Goal> {
+    env.storage()
+        .persistent()
+        .get(&ExtendedDataKey::ArchivedGoals(creator.clone()))
+        .unwrap_or(soroban_sdk::Vec::new(env))
+}
+
+pub fn set_archived_goals(env: &Env, creator: &Address, goals: &soroban_sdk::Vec<crate::types::Goal>) {
+    env.storage()
+        .persistent()
+        .set(&ExtendedDataKey::ArchivedGoals(creator.clone()), goals);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Multi-token storage functions
+// ──────────────────────────────────────────────────────────────────────────────
+
+pub fn get_accepted_token(env: &Env, token: &Address) -> Option<crate::types::AcceptedToken> {
+    env.storage()
+        .instance()
+        .get(&ExtendedDataKey::AcceptedToken(token.clone()))
+}
+
+pub fn set_accepted_token(env: &Env, token: &Address, config: &crate::types::AcceptedToken) {
+    env.storage()
+        .instance()
+        .set(&ExtendedDataKey::AcceptedToken(token.clone()), config);
+}
+
+pub fn get_accepted_token_list(env: &Env) -> soroban_sdk::Vec<Address> {
+    env.storage()
+        .instance()
+        .get(&ExtendedDataKey::AcceptedTokenList)
+        .unwrap_or(soroban_sdk::Vec::new(env))
+}
+
+pub fn set_accepted_token_list(env: &Env, tokens: &soroban_sdk::Vec<Address>) {
+    env.storage()
+        .instance()
+        .set(&ExtendedDataKey::AcceptedTokenList, tokens);
+}
+
+pub fn get_token_balance(env: &Env, creator: &Address, token: &Address) -> i128 {
+    env.storage()
+        .persistent()
+        .get(&ExtendedDataKey::TokenBalance(creator.clone(), token.clone()))
+        .unwrap_or(0)
+}
+
+pub fn set_token_balance(env: &Env, creator: &Address, token: &Address, amount: i128) {
+    env.storage()
+        .persistent()
+        .set(&ExtendedDataKey::TokenBalance(creator.clone(), token.clone()), &amount);
+}
+
+pub fn add_token_balance(env: &Env, creator: &Address, token: &Address, amount: i128) -> Result<i128, ContractError> {
+    let current = get_token_balance(env, creator, token);
+    let new_balance = current.checked_add(amount).ok_or(ContractError::OverflowError)?;
+    set_token_balance(env, creator, token, new_balance);
+    Ok(new_balance)
 }

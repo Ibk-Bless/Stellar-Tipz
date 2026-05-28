@@ -5,7 +5,14 @@ import Skeleton from "../../components/ui/Skeleton";
 
 const TipPageSkeleton: React.FC = () => {
   return (
-    <PageContainer maxWidth="xl" className="space-y-8 py-10">
+    <PageContainer
+      maxWidth="xl"
+      className="space-y-8 py-10"
+      role="status"
+      aria-label="Loading tip page"
+      aria-live="polite"
+      aria-busy="true"
+    >
 
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
 

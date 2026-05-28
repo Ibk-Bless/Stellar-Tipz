@@ -8,9 +8,10 @@ import {
 import { Link, useParams } from "react-router-dom";
 
 import PageContainer from "../../components/layout/PageContainer";
+import Breadcrumbs from "../../components/shared/Breadcrumbs";
 import AmountDisplay from "../../components/shared/AmountDisplay";
 import CreditBadge from "../../components/shared/CreditBadge";
-import TransactionStatus from "../../components/shared/TransactionStatus";
+import VerificationBadge from "../profile/VerificationBadge";
 import Avatar from "../../components/ui/Avatar";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
@@ -29,11 +30,11 @@ import { useTipFlow } from "./useTipFlow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import CreatorNotFound from "./CreatorNotFound";
 import TipAmountPresets from "./TipAmountPresets";
-import { useNavigate } from "react-router-dom";
+import TransactionTracker, { TransactionTrackerStatus } from "./TransactionTracker";
+import { useFormAutosave } from "@/hooks/useFormAutosave";
 
 const TipPage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
-  const navigate = useNavigate();
   const { connected, connect } = useWallet();
   const [amount, setAmount] = useState("5");
   const [message, setMessage] = useState("");
@@ -77,6 +78,7 @@ const TipPage: React.FC = () => {
     step,
     goToConfirm,
     confirmAndSign,
+    retry,
     reset,
     error: flowError,
     txHash,
@@ -84,6 +86,24 @@ const TipPage: React.FC = () => {
   
   // Transaction guard to prevent duplicate submissions
   const { isPending: isTransactionPending, startTransaction } = useTransactionGuard();
+
+  const { clearSaved: clearTipDraft } = useFormAutosave({
+    storageKey: "tipz_tip_form",
+    data: { amount, message },
+    onRestore: (saved) => {
+      if (typeof saved.amount === "string") setAmount(saved.amount);
+      if (typeof saved.message === "string") setMessage(saved.message);
+    },
+    intervalMs: 5000,
+    ttlMs: 24 * 60 * 60 * 1000,
+    restorePrompt: "Restore saved tip?",
+  });
+
+  useEffect(() => {
+    if (step === "success") {
+      clearTipDraft();
+    }
+  }, [step, clearTipDraft]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -100,21 +120,6 @@ const TipPage: React.FC = () => {
       await confirmAndSign();
     });
   }, [confirmAndSign, startTransaction]);
-
-  useEffect(() => {
-    if (step === "success" && txHash && creator) {
-      navigate("/receipt", { 
-        state: { 
-          tipData: { 
-            amount, 
-            message, 
-            txHash, 
-            recipient: creator 
-          } 
-        } 
-      });
-    }
-  }, [step, txHash, creator, amount, message, navigate]);
 
   if (loading) {
     return <TipPageSkeleton />;
@@ -138,6 +143,10 @@ const TipPage: React.FC = () => {
 
   return (
     <PageContainer maxWidth="xl" className="space-y-8 py-10">
+      <Breadcrumbs items={[
+        { label: 'Home', href: '/' },
+        { label: `@${creator.username}` },
+      ]} />
       <section aria-labelledby="tip-creator-heading" className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <Card className="space-y-6" padding="lg">
           <div className="flex flex-col gap-5 border-b-2 border-dashed border-black pb-6 md:flex-row md:items-center md:justify-between">
@@ -158,6 +167,17 @@ const TipPage: React.FC = () => {
                 <p className="text-sm font-bold text-gray-600">
                   @{creator.username}
                 </p>
+                <VerificationBadge
+                  isVerified={creator.verification?.isVerified ?? false}
+                  verificationType={creator.verification?.verificationType as
+                    | "Identity"
+                    | "SocialMedia"
+                    | "Community"
+                    | undefined}
+                  domain={creator.domain}
+                  domainVerified={creator.domainVerified}
+                  className="mt-2"
+                />
               </div>
             </div>
 
@@ -255,7 +275,11 @@ const TipPage: React.FC = () => {
                 value={amount}
                 onChange={(nextAmount) => setAmount(String(nextAmount))}
               />
-              <TipAmountInput amount={amount} onChange={setAmount} />
+              <TipAmountInput
+                amount={amount}
+                onChange={setAmount}
+                creatorAddress={creator.owner}
+              />
 
               <Textarea
                 label="Message"
@@ -306,9 +330,9 @@ const TipPage: React.FC = () => {
             submitting={step === "signing" || step === "submitting" || isTransactionPending}
           />
 
-          {step === "signing" || step === "submitting" ? (
-            <TransactionStatus
-              status={step === "signing" ? "signing" : "submitting"}
+          {["preparing", "signing", "submitting", "confirming", "success", "error"].includes(step) ? (
+            <TransactionTracker
+              status={step as TransactionTrackerStatus}
               txHash={txHash ?? undefined}
               errorMessage={
                 flowError
@@ -317,6 +341,8 @@ const TipPage: React.FC = () => {
                     : ERRORS.CONTRACT
                   : undefined
               }
+              onRetry={step === "error" ? () => void retry() : undefined}
+              onCancel={step === "preparing" || step === "signing" ? reset : undefined}
             />
           ) : null}
         </Card>

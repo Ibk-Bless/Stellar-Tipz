@@ -78,6 +78,12 @@ const Footer: React.FC = () => {
             <h3 className="text-sm font-black uppercase tracking-wide">
               {t("footer.resources")}
             </h3>
+            <Link
+              to="/help"
+              className="w-fit text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"
+            >
+              Help Center
+            </Link>
             <a
               href="/docs"
               className="w-fit text-sm text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-700 dark:text-gray-300"

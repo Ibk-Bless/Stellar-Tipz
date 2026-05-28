@@ -50,19 +50,19 @@ fn get_profile_success() {
 
     let profile = client.get_profile(&address);
 
-    assert_eq!(profile.owner, address);
-    assert_eq!(profile.username, String::from_str(&env, "alice"));
-    assert_eq!(profile.display_name, String::from_str(&env, "Test User"));
-    assert_eq!(profile.bio, String::from_str(&env, "Test bio"));
+    assert_eq!(profile.profile.owner, address);
+    assert_eq!(profile.profile.username, String::from_str(&env, "alice"));
+    assert_eq!(profile.profile.display_name, String::from_str(&env, "Test User"));
+    assert_eq!(profile.profile.bio, String::from_str(&env, "Test bio"));
     assert_eq!(
-        profile.image_url,
+        profile.profile.image_url,
         String::from_str(&env, "https://example.com/avatar.png")
     );
-    assert_eq!(profile.x_handle, String::from_str(&env, "@test_x"));
-    assert_eq!(profile.credit_score, 40);
-    assert_eq!(profile.balance, 0);
-    assert_eq!(profile.total_tips_received, 0);
-    assert_eq!(profile.total_tips_count, 0);
+    assert_eq!(profile.profile.x_handle, String::from_str(&env, "@test_x"));
+    assert_eq!(profile.profile.credit_score, 40);
+    assert_eq!(profile.profile.balance, 0);
+    assert_eq!(profile.profile.total_tips_received, 0);
+    assert_eq!(profile.profile.total_tips_count, 0);
 }
 
 #[test]
@@ -94,20 +94,20 @@ fn get_profile_returns_all_fields() {
     let retrieved = client.get_profile(&caller);
 
     // Verify all fields match
-    assert_eq!(retrieved.owner, profile.owner);
-    assert_eq!(retrieved.username, profile.username);
-    assert_eq!(retrieved.display_name, profile.display_name);
-    assert_eq!(retrieved.bio, profile.bio);
-    assert_eq!(retrieved.image_url, profile.image_url);
-    assert_eq!(retrieved.x_handle, profile.x_handle);
-    assert_eq!(retrieved.x_followers, profile.x_followers);
-    assert_eq!(retrieved.x_engagement_avg, profile.x_engagement_avg);
-    assert_eq!(retrieved.credit_score, profile.credit_score);
-    assert_eq!(retrieved.total_tips_received, profile.total_tips_received);
-    assert_eq!(retrieved.total_tips_count, profile.total_tips_count);
-    assert_eq!(retrieved.balance, profile.balance);
-    assert_eq!(retrieved.registered_at, profile.registered_at);
-    assert_eq!(retrieved.updated_at, profile.updated_at);
+    assert_eq!(retrieved.profile.owner, profile.owner);
+    assert_eq!(retrieved.profile.username, profile.username);
+    assert_eq!(retrieved.profile.display_name, profile.display_name);
+    assert_eq!(retrieved.profile.bio, profile.bio);
+    assert_eq!(retrieved.profile.image_url, profile.image_url);
+    assert_eq!(retrieved.profile.x_handle, profile.x_handle);
+    assert_eq!(retrieved.profile.x_followers, profile.x_followers);
+    assert_eq!(retrieved.profile.x_engagement_avg, profile.x_engagement_avg);
+    assert_eq!(retrieved.profile.credit_score, profile.credit_score);
+    assert_eq!(retrieved.profile.total_tips_received, profile.total_tips_received);
+    assert_eq!(retrieved.profile.total_tips_count, profile.total_tips_count);
+    assert_eq!(retrieved.profile.balance, profile.balance);
+    assert_eq!(retrieved.profile.registered_at, profile.registered_at);
+    assert_eq!(retrieved.profile.updated_at, profile.updated_at);
 }
 
 // ── get_profile_by_username tests ────────────────────────────────────────────
@@ -119,9 +119,9 @@ fn get_profile_by_username_success() {
 
     let profile = client.get_profile_by_username(&String::from_str(&env, "charlie"));
 
-    assert_eq!(profile.owner, address);
-    assert_eq!(profile.username, String::from_str(&env, "charlie"));
-    assert_eq!(profile.display_name, String::from_str(&env, "Test User"));
+    assert_eq!(profile.profile.owner, address);
+    assert_eq!(profile.profile.username, String::from_str(&env, "charlie"));
+    assert_eq!(profile.profile.display_name, String::from_str(&env, "Test User"));
 }
 
 #[test]
@@ -152,20 +152,20 @@ fn get_profile_by_username_returns_all_fields() {
     let retrieved = client.get_profile_by_username(&String::from_str(&env, "diana"));
 
     // Verify all fields match
-    assert_eq!(retrieved.owner, profile.owner);
-    assert_eq!(retrieved.username, profile.username);
-    assert_eq!(retrieved.display_name, profile.display_name);
-    assert_eq!(retrieved.bio, profile.bio);
-    assert_eq!(retrieved.image_url, profile.image_url);
-    assert_eq!(retrieved.x_handle, profile.x_handle);
-    assert_eq!(retrieved.x_followers, profile.x_followers);
-    assert_eq!(retrieved.x_engagement_avg, profile.x_engagement_avg);
-    assert_eq!(retrieved.credit_score, profile.credit_score);
-    assert_eq!(retrieved.total_tips_received, profile.total_tips_received);
-    assert_eq!(retrieved.total_tips_count, profile.total_tips_count);
-    assert_eq!(retrieved.balance, profile.balance);
-    assert_eq!(retrieved.registered_at, profile.registered_at);
-    assert_eq!(retrieved.updated_at, profile.updated_at);
+    assert_eq!(retrieved.profile.owner, profile.owner);
+    assert_eq!(retrieved.profile.username, profile.username);
+    assert_eq!(retrieved.profile.display_name, profile.display_name);
+    assert_eq!(retrieved.profile.bio, profile.bio);
+    assert_eq!(retrieved.profile.image_url, profile.image_url);
+    assert_eq!(retrieved.profile.x_handle, profile.x_handle);
+    assert_eq!(retrieved.profile.x_followers, profile.x_followers);
+    assert_eq!(retrieved.profile.x_engagement_avg, profile.x_engagement_avg);
+    assert_eq!(retrieved.profile.credit_score, profile.credit_score);
+    assert_eq!(retrieved.profile.total_tips_received, profile.total_tips_received);
+    assert_eq!(retrieved.profile.total_tips_count, profile.total_tips_count);
+    assert_eq!(retrieved.profile.balance, profile.balance);
+    assert_eq!(retrieved.profile.registered_at, profile.registered_at);
+    assert_eq!(retrieved.profile.updated_at, profile.updated_at);
 }
 
 #[test]
@@ -183,9 +183,9 @@ fn get_profile_by_username_multiple_users() {
     let charlie = client.get_profile_by_username(&String::from_str(&env, "charlie"));
 
     // Verify correct addresses
-    assert_eq!(alice.owner, alice_addr);
-    assert_eq!(bob.owner, bob_addr);
-    assert_eq!(charlie.owner, charlie_addr);
+    assert_eq!(alice.profile.owner, alice_addr);
+    assert_eq!(bob.profile.owner, bob_addr);
+    assert_eq!(charlie.profile.owner, charlie_addr);
 }
 
 // ── cross-validation tests ───────────────────────────────────────────────────
@@ -199,12 +199,12 @@ fn get_profile_and_get_profile_by_username_return_same_data() {
     let by_username = client.get_profile_by_username(&String::from_str(&env, "eve"));
 
     // Both methods should return identical profiles
-    assert_eq!(by_address.owner, by_username.owner);
-    assert_eq!(by_address.username, by_username.username);
-    assert_eq!(by_address.display_name, by_username.display_name);
-    assert_eq!(by_address.bio, by_username.bio);
-    assert_eq!(by_address.image_url, by_username.image_url);
-    assert_eq!(by_address.x_handle, by_username.x_handle);
-    assert_eq!(by_address.credit_score, by_username.credit_score);
-    assert_eq!(by_address.balance, by_username.balance);
+    assert_eq!(by_address.profile.owner, by_username.profile.owner);
+    assert_eq!(by_address.profile.username, by_username.profile.username);
+    assert_eq!(by_address.profile.display_name, by_username.profile.display_name);
+    assert_eq!(by_address.profile.bio, by_username.profile.bio);
+    assert_eq!(by_address.profile.image_url, by_username.profile.image_url);
+    assert_eq!(by_address.profile.x_handle, by_username.profile.x_handle);
+    assert_eq!(by_address.profile.credit_score, by_username.profile.credit_score);
+    assert_eq!(by_address.profile.balance, by_username.profile.balance);
 }

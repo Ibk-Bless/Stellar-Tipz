@@ -11,6 +11,7 @@ const LeaderboardSkeleton: React.FC<{ count?: number }> = ({ count = 10 }) => {
       maxWidth="xl"
       className="space-y-8 py-10"
       role="status"
+      aria-label="Loading leaderboard"
       aria-live="polite"
       aria-busy="true"
       aria-atomic="true"

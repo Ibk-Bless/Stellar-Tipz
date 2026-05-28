@@ -3,6 +3,7 @@ import BigNumber from "bignumber.js";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import AmountDisplay from "@/components/shared/AmountDisplay";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { stroopToXlmBigNumber, xlmToStroop } from "@/helpers/format";
 import { useTipz, useProfile } from "@/hooks";
 import Input from "@/components/ui/Input";
@@ -27,6 +28,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
   feeBps,
 }) => {
   const [amount, setAmount] = React.useState("");
+  const [isWithdrawAllDialogOpen, setIsWithdrawAllDialogOpen] = React.useState(false);
   const { withdrawTips, withdrawing, error, txHash, txStatus, reset } =
     useTipz();
   const { refetch } = useProfile();
@@ -93,11 +95,22 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
   }, [fee, requestedStroops]);
 
   const canWithdraw = !amountError;
+  const isWithdrawingAll = parsedAmount?.eq(balanceXlm) ?? false;
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canWithdraw) return;
 
+    // Show confirmation dialog for withdraw all
+    if (isWithdrawingAll) {
+      setIsWithdrawAllDialogOpen(true);
+      return;
+    }
+
+    await performWithdraw();
+  };
+
+  const performWithdraw = async () => {
     try {
       await withdrawTips(amount);
       addToast({
@@ -115,7 +128,13 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
   const handleClose = () => {
     reset();
     setAmount(balanceXlm.toFixed());
+    setIsWithdrawAllDialogOpen(false);
     onClose();
+  };
+
+  const handleConfirmWithdrawAll = async () => {
+    setIsWithdrawAllDialogOpen(false);
+    await performWithdraw();
   };
 
   return (
@@ -242,6 +261,23 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({
           Funds will be available in your wallet instantly.
         </p>
       </form>
+
+      <ConfirmDialog
+        isOpen={isWithdrawAllDialogOpen}
+        onClose={() => setIsWithdrawAllDialogOpen(false)}
+        onConfirm={handleConfirmWithdrawAll}
+        title="Withdraw All Funds"
+        message={`Are you sure you want to withdraw your entire balance of ${balanceXlm.toFixed(7)} XLM?`}
+        confirmText="Withdraw All"
+        cancelText="Cancel"
+        loading={withdrawing}
+        consequences={[
+          "Your entire balance will be transferred to your wallet",
+          `Platform fee of ${(feeBps / 100).toFixed(1)}% will be deducted`,
+          "Your profile balance will be reset to zero",
+          "This action cannot be undone"
+        ]}
+      />
     </Modal>
   );
 };

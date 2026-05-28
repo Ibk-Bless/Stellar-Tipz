@@ -68,6 +68,7 @@ pub fn initialize(
                 max_ops: 50,
                 window_secs: 3600,
             },
+            domain_reverify_secs: storage::DEFAULT_DOMAIN_REVERIFICATION_INTERVAL,
         },
     );
     storage::set_leaderboard_set(
@@ -457,6 +458,57 @@ pub fn set_min_tip_amount(env: &Env, caller: &Address, amount: i128) -> Result<(
     let old = storage::get_min_tip_amount(env);
     storage::set_min_tip_amount(env, amount);
     events::emit_min_tip_amount_updated(env, old, amount);
+    Ok(())
+}
+
+/// Admin confirms domain verification after off-chain stellar.toml check.
+pub fn verify_domain(env: &Env, caller: &Address, creator: &Address) -> Result<(), ContractError> {
+    storage::extend_instance_ttl(env);
+    require_admin(env, caller)?;
+
+    if !storage::has_profile(env, creator) {
+        return Err(ContractError::NotRegistered);
+    }
+
+    let mut profile = storage::get_profile(env, creator);
+    if profile.domain.is_empty() {
+        return Err(ContractError::InvalidDomain);
+    }
+    if profile.domain_verified {
+        return Err(ContractError::AlreadyVerified);
+    }
+
+    let now = env.ledger().timestamp();
+    profile.domain_verified = true;
+    profile.domain_verified_at = Some(now);
+    profile.verification = crate::types::VerificationStatus {
+        is_verified: true,
+        verification_type: crate::types::VerificationType::Identity,
+        verified_at: Some(now),
+        revoked_at: None,
+    };
+    profile.updated_at = now;
+
+    storage::set_profile(env, &profile);
+    storage::bump_profile_ttl(env, creator);
+    storage::bump_username_ttl(env, &profile.username);
+
+    events::emit_domain_verified(env, creator, &profile.domain);
+    Ok(())
+}
+
+/// Configure how often domain verifications must be renewed (admin only).
+pub fn set_domain_reverify_interval(
+    env: &Env,
+    caller: &Address,
+    interval_secs: u64,
+) -> Result<(), ContractError> {
+    storage::extend_instance_ttl(env);
+    require_admin(env, caller)?;
+    if interval_secs == 0 {
+        return Err(ContractError::InvalidAmount);
+    }
+    storage::set_domain_reverification_interval(env, interval_secs);
     Ok(())
 }
 

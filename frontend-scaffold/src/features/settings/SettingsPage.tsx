@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Palette, Lock, RotateCcw, Loader } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
+import Button from '@/components/ui/Button';
+import {
+  notifyReducedMotionSettingsChanged,
+  ReduceMotionPreference,
+} from '@/hooks/useReducedMotion';
+import { startOnboardingTour } from '@/hooks/useOnboarding';
 
 interface Settings {
   tipNotifications: boolean;

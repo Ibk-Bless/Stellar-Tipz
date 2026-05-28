@@ -2,6 +2,7 @@ import React from 'react';
 import Button from '../ui/Button';
 import Toast from '../ui/Toast';
 import CreditBadge from './CreditBadge';
+import ConfirmDialog from './ConfirmDialog';
 import { useWallet, useProfile } from '../../hooks';
 import { SUPPORTED_WALLETS } from '../../hooks/useWallet';
 import { truncateAddress } from '../../services';
@@ -25,6 +26,12 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ className }) => {
   } = useWallet();
   const { profile } = useProfile();
   const [showModal, setShowModal] = React.useState(false);
+  const [isDisconnectDialogOpen, setIsDisconnectDialogOpen] = React.useState(false);
+
+  const handleDisconnect = () => {
+    setIsDisconnectDialogOpen(false);
+    disconnect();
+  };
 
   if (connected && publicKey) {
     return (
@@ -35,7 +42,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ className }) => {
             {truncateAddress(publicKey)}
           </span>
         </div>
-        <Button variant="outline" size="sm" onClick={disconnect}>
+        <Button variant="outline" size="sm" onClick={() => setIsDisconnectDialogOpen(true)}>
           Disconnect
         </Button>
       </div>
@@ -146,6 +153,22 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ className }) => {
           onClose={() => setError(null)}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={isDisconnectDialogOpen}
+        onClose={() => setIsDisconnectDialogOpen(false)}
+        onConfirm={handleDisconnect}
+        title="Disconnect Wallet"
+        message="Are you sure you want to disconnect your wallet? You will need to reconnect to perform any transactions."
+        confirmText="Disconnect"
+        cancelText="Stay Connected"
+        consequences={[
+          "You will be logged out of your account",
+          "You won't be able to send or receive tips",
+          "You won't be able to withdraw funds",
+          "You can reconnect anytime to restore access"
+        ]}
+      />
     </>
   );
 };

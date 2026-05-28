@@ -2,7 +2,9 @@
 
 #![cfg(test)]
 
-use soroban_sdk::{testutils::Address as _, testutils::Ledger as _, token, Address, Env, Map, String, Symbol};
+use soroban_sdk::{
+    testutils::Address as _, testutils::Ledger as _, token, Address, Env, Map, String, Symbol,
+};
 
 use crate::credit::calculate_credit_score;
 use crate::storage::DataKey;
@@ -11,7 +13,14 @@ use crate::types::{Profile, VerificationStatus, VerificationType};
 use crate::TipzContract;
 use crate::TipzContractClient;
 
-fn setup_env() -> (Env, TipzContractClient<'static>, Address, Address, Address, Address) {
+fn setup_env() -> (
+    Env,
+    TipzContractClient<'static>,
+    Address,
+    Address,
+    Address,
+    Address,
+) {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -52,6 +61,10 @@ fn setup_env() -> (Env, TipzContractClient<'static>, Address, Address, Address, 
             verified_at: None,
             revoked_at: None,
         },
+        domain: String::from_str(&env, ""),
+        domain_verified: false,
+        domain_verified_at: None,
+        custom_min_tip: None,
     };
 
     env.as_contract(&contract_id, || {
@@ -121,7 +134,11 @@ fn test_streak_bonus_updates_credit_score() {
 
     let score = client.calculate_credit_score(&creator);
     let pure_score = env.as_contract(&contract_id, || {
-        let profile: Profile = env.storage().persistent().get(&DataKey::Profile(creator.clone())).unwrap();
+        let profile: Profile = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Profile(creator.clone()))
+            .unwrap();
         calculate_credit_score(&profile, env.ledger().timestamp())
     });
 

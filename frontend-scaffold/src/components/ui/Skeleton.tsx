@@ -52,7 +52,8 @@ const Skeleton: React.FC<SkeletonProps> = ({
       </style>
       <div
         data-testid={`skeleton-${variant}`}
-        className={`st-skeleton ${className}`}
+        aria-hidden="true"
+        className={`skeleton st-skeleton ${className}`}
         style={{
           width: toCssSize(width),
           height: toCssSize(height),

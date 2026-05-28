@@ -6,8 +6,10 @@ import { queueOfflineTip } from "../../services/serviceWorker";
 export type TipFlowStep =
   | "form"
   | "confirm"
+  | "preparing"
   | "signing"
   | "submitting"
+  | "confirming"
   | "success"
   | "queued"
   | "error";
@@ -16,6 +18,7 @@ interface UseTipFlowReturn {
   step: TipFlowStep;
   goToConfirm: (amount: string, message: string) => void;
   confirmAndSign: () => Promise<void>;
+  retry: () => Promise<void>;
   reset: () => void;
   error: string | null;
   txHash: string | null;
@@ -37,7 +40,7 @@ export const useTipFlow = (creatorAddress: string): UseTipFlowReturn => {
       }
 
       if (txStatus === "submitting" || txStatus === "confirming") {
-        setStep("submitting");
+        setStep(txStatus);
         return;
       }
 
@@ -64,6 +67,8 @@ export const useTipFlow = (creatorAddress: string): UseTipFlowReturn => {
       return;
     }
 
+    setStep("preparing");
+
     // Queue the operation if the user is currently offline.
     if (!navigator.onLine) {
       await queueOfflineTip({
@@ -89,6 +94,7 @@ export const useTipFlow = (creatorAddress: string): UseTipFlowReturn => {
       step,
       goToConfirm,
       confirmAndSign,
+      retry: confirmAndSign,
       reset,
       error,
       txHash,

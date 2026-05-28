@@ -18,13 +18,15 @@ mod credit;
 mod errors;
 mod events;
 mod fees;
+mod goals;
 mod leaderboard;
+mod multitoken;
 mod multisig;
 mod profile;
 mod stats;
 mod storage;
-mod subscription;
 mod streaks;
+mod subscription;
 mod tips;
 mod token;
 mod types;
@@ -44,7 +46,7 @@ use crate::types::{
 
 /// The current contract interface version, stored on-chain during initialization.
 /// Must be incremented manually in source when the contract interface changes.
-pub const CONTRACT_VERSION: u32 = 2;
+pub const CONTRACT_VERSION: u32 = 3;
 
 #[contract]
 pub struct TipzContract;
@@ -189,7 +191,10 @@ impl TipzContract {
     }
 
     /// Get a profile by address, including deactivation status.
-    pub fn get_profile(env: Env, address: Address) -> Result<ProfileWithDeactivation, ContractError> {
+    pub fn get_profile(
+        env: Env,
+        address: Address,
+    ) -> Result<ProfileWithDeactivation, ContractError> {
         profile::get_profile_with_deactivation(&env, &address)
     }
 
@@ -371,9 +376,13 @@ impl TipzContract {
         Ok(())
     }
 
-    /// Return the 1-based rank of `address` on the leaderboard for a specific period, 
+    /// Return the 1-based rank of `address` on the leaderboard for a specific period,
     /// or `None` when the address has not yet appeared in the top 50.
-    pub fn get_leaderboard_rank(env: Env, period: crate::types::LeaderboardPeriod, address: Address) -> Option<u32> {
+    pub fn get_leaderboard_rank(
+        env: Env,
+        period: crate::types::LeaderboardPeriod,
+        address: Address,
+    ) -> Option<u32> {
         leaderboard::get_leaderboard_rank(&env, period, &address)
     }
 
@@ -705,6 +714,54 @@ impl TipzContract {
         profile::get_donation_page(&env, &creator)
     }
 
+    /// Set a custom minimum tip amount for a creator profile.
+    ///
+    /// Pass `0` to reset to the global minimum.
+    pub fn set_min_tip(
+        env: Env,
+        creator: Address,
+        min_amount: i128,
+    ) -> Result<(), ContractError> {
+        profile::set_min_tip(&env, creator, min_amount)
+    }
+
+    /// Return the effective minimum tip for a creator (custom or global default).
+    pub fn get_creator_min_tip(env: Env, creator: Address) -> Result<i128, ContractError> {
+        profile::get_creator_min_tip(&env, &creator)
+    }
+
+    /// Set the domain to verify via stellar.toml (marks verification as pending).
+    pub fn set_domain(
+        env: Env,
+        creator: Address,
+        domain: String,
+    ) -> Result<(), ContractError> {
+        profile::set_domain(&env, creator, domain)
+    }
+
+    /// Admin confirms domain verification after off-chain stellar.toml check.
+    pub fn verify_domain(
+        env: Env,
+        caller: Address,
+        creator: Address,
+    ) -> Result<(), ContractError> {
+        admin::verify_domain(&env, &caller, &creator)
+    }
+
+    /// Configure domain re-verification interval in seconds (admin only).
+    pub fn set_domain_reverify_interval(
+        env: Env,
+        caller: Address,
+        interval_secs: u64,
+    ) -> Result<(), ContractError> {
+        admin::set_domain_reverify_interval(&env, &caller, interval_secs)
+    }
+
+    /// Return the configured domain re-verification interval in seconds.
+    pub fn get_domain_reverify_interval(env: Env) -> u64 {
+        storage::get_domain_reverification_interval(&env)
+    }
+
     // ──────────────────────────────────────────────
     // Platform Statistics
     // ──────────────────────────────────────────────
@@ -720,5 +777,91 @@ impl TipzContract {
         creator: Address,
     ) -> Result<stats::CreatorStats, ContractError> {
         stats::get_creator_stats(&env, &creator)
+    }
+
+    // ──────────────────────────────────────────────
+    // Goal Tracking
+    // ──────────────────────────────────────────────
+
+    /// Set a fundraising goal for a creator
+    pub fn set_goal(
+        env: Env,
+        creator: Address,
+        target_amount: i128,
+        description: String,
+        deadline: u64,
+    ) -> Result<(), ContractError> {
+        goals::set_goal(&env, &creator, target_amount, &description, deadline)
+    }
+
+    /// Get the active goal for a creator
+    pub fn get_goal(env: Env, creator: Address) -> Result<types::Goal, ContractError> {
+        goals::get_goal(&env, &creator)
+    }
+
+    /// Cancel the active goal for a creator
+    pub fn cancel_goal(env: Env, creator: Address) -> Result<(), ContractError> {
+        goals::cancel_goal(&env, &creator)
+    }
+
+    /// Get archived goals for a creator
+    pub fn get_archived_goals(env: Env, creator: Address) -> Vec<types::Goal> {
+        goals::get_archived_goals(&env, &creator)
+    }
+
+    // ──────────────────────────────────────────────
+    // Multi-Token Support
+    // ──────────────────────────────────────────────
+
+    /// Add a token to the whitelist of accepted tokens (admin only)
+    pub fn add_accepted_token(
+        env: Env,
+        admin: Address,
+        token: Address,
+        oracle: Option<Address>,
+    ) -> Result<(), ContractError> {
+        multitoken::add_accepted_token(&env, &admin, &token, oracle)
+    }
+
+    /// Remove a token from the whitelist (admin only)
+    pub fn remove_accepted_token(
+        env: Env,
+        admin: Address,
+        token: Address,
+    ) -> Result<(), ContractError> {
+        multitoken::remove_accepted_token(&env, &admin, &token)
+    }
+
+    /// Get list of all accepted tokens
+    pub fn get_accepted_tokens(env: Env) -> Vec<types::AcceptedToken> {
+        multitoken::get_accepted_tokens(&env)
+    }
+
+    /// Send a tip using a specific token
+    pub fn send_tip_token(
+        env: Env,
+        tipper: Address,
+        creator: Address,
+        amount: i128,
+        token: Address,
+        message: String,
+        is_anonymous: bool,
+    ) -> Result<(), ContractError> {
+        multitoken::send_tip_token(&env, &tipper, &creator, amount, &token, &message, is_anonymous)
+    }
+
+    /// Withdraw accumulated tips in a specific token
+    pub fn withdraw_token(
+        env: Env,
+        caller: Address,
+        token: Address,
+        amount: i128,
+    ) -> Result<(), ContractError> {
+        multitoken::withdraw_token(&env, &caller, &token, amount)
+    }
+
+    /// Get all token balances for a creator
+    pub fn get_token_balances(env: Env, creator: Address) -> Vec<types::TokenBalance> {
+        multitoken::get_token_balances(&env, &creator)
     }
 }

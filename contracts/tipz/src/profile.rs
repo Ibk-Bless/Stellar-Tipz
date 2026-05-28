@@ -119,6 +119,10 @@ pub fn register_profile(
             verified_at: None,
             revoked_at: None,
         },
+        domain: String::from_str(env, ""),
+        domain_verified: false,
+        domain_verified_at: None,
+        custom_min_tip: None,
     };
 
     storage::set_profile(env, &profile);
@@ -216,6 +220,7 @@ pub fn get_profile_with_deactivation(
     env: &Env,
     address: &Address,
 ) -> Result<ProfileWithDeactivation, ContractError> {
+    refresh_domain_verification_status(env, address);
     let profile = storage::get_profile_opt(env, address).ok_or(ContractError::NotRegistered)?;
     storage::bump_existing_profile_ttl(env, address);
     storage::bump_username_ttl(env, &profile.username);
@@ -423,4 +428,113 @@ pub fn get_donation_page(
             is_default: true,
         })
     }
+}
+
+/// Set a custom minimum tip amount for the caller's profile.
+///
+/// Pass `0` to reset to the global minimum.
+pub fn set_min_tip(
+    env: &Env,
+    creator: Address,
+    min_amount: i128,
+) -> Result<(), ContractError> {
+    storage::extend_instance_ttl(env);
+    crate::admin::require_not_paused(env)?;
+    creator.require_auth();
+
+    if !storage::has_profile(env, &creator) {
+        return Err(ContractError::NotRegistered);
+    }
+
+    if min_amount == 0 {
+        let mut profile = storage::get_profile(env, &creator);
+        profile.custom_min_tip = None;
+        profile.updated_at = env.ledger().timestamp();
+        storage::set_profile(env, &profile);
+        storage::bump_profile_ttl(env, &creator);
+        storage::bump_username_ttl(env, &profile.username);
+        events::emit_creator_min_tip_updated(env, &creator, None);
+        return Ok(());
+    }
+
+    if min_amount < 0 {
+        return Err(ContractError::InvalidAmount);
+    }
+
+    let mut profile = storage::get_profile(env, &creator);
+    profile.custom_min_tip = Some(min_amount);
+    profile.updated_at = env.ledger().timestamp();
+    storage::set_profile(env, &profile);
+    storage::bump_profile_ttl(env, &creator);
+    storage::bump_username_ttl(env, &profile.username);
+    events::emit_creator_min_tip_updated(env, &creator, Some(min_amount));
+    Ok(())
+}
+
+/// Return the effective minimum tip amount for a creator.
+pub fn get_creator_min_tip(env: &Env, creator: &Address) -> Result<i128, ContractError> {
+    if !storage::has_profile(env, creator) {
+        return Err(ContractError::NotRegistered);
+    }
+    Ok(storage::get_effective_creator_min_tip(env, creator))
+}
+
+/// Set the domain to verify via stellar.toml (marks verification as pending).
+pub fn set_domain(env: &Env, creator: Address, domain: String) -> Result<(), ContractError> {
+    storage::extend_instance_ttl(env);
+    crate::admin::require_not_paused(env)?;
+    creator.require_auth();
+
+    if !storage::has_profile(env, &creator) {
+        return Err(ContractError::NotRegistered);
+    }
+
+    validation::validate_domain(&domain)?;
+
+    let mut profile = storage::get_profile(env, &creator);
+    profile.domain = domain.clone();
+    profile.domain_verified = false;
+    profile.domain_verified_at = None;
+    profile.updated_at = env.ledger().timestamp();
+
+    storage::set_profile(env, &profile);
+    storage::bump_profile_ttl(env, &creator);
+    storage::bump_username_ttl(env, &profile.username);
+
+    events::emit_domain_set(env, &creator, &domain);
+    Ok(())
+}
+
+/// Invalidate domain verification when the re-verification interval has elapsed.
+pub fn refresh_domain_verification_status(env: &Env, creator: &Address) {
+    if !storage::has_profile(env, creator) {
+        return;
+    }
+
+    let mut profile = storage::get_profile(env, creator);
+    if !profile.domain_verified {
+        return;
+    }
+
+    let Some(verified_at) = profile.domain_verified_at else {
+        return;
+    };
+
+    let interval = storage::get_domain_reverification_interval(env);
+    let now = env.ledger().timestamp();
+    if now <= verified_at.saturating_add(interval) {
+        return;
+    }
+
+    profile.domain_verified = false;
+    profile.domain_verified_at = None;
+    profile.verification = crate::types::VerificationStatus {
+        is_verified: false,
+        verification_type: crate::types::VerificationType::Unverified,
+        verified_at: None,
+        revoked_at: Some(now),
+    };
+    profile.updated_at = now;
+    storage::set_profile(env, &profile);
+    events::emit_domain_verification_expired(env, creator);
 }

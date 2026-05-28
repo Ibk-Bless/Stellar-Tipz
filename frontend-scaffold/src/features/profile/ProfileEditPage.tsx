@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import PageContainer from "../../components/layout/PageContainer";
+import Breadcrumbs from "../../components/shared/Breadcrumbs";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Loader from "../../components/ui/Loader";
@@ -76,6 +77,11 @@ const ProfileEditPage: React.FC = () => {
   return (
     <ErrorBoundary>
       <PageContainer maxWidth="md" className="space-y-6 py-10">
+        <Breadcrumbs items={[
+          { label: 'Home', href: '/' },
+          { label: 'Profile', href: '/profile' },
+          { label: 'Edit Profile' },
+        ]} />
         <div className="flex items-center gap-3">
           <Button
             type="button"
