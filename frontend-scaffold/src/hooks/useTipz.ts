@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useContract } from './useContract';
 import { logger } from '../services/logger';
+import { analytics } from '../services/analytics';
 
 export type TxStatus = 'idle' | 'signing' | 'submitting' | 'confirming' | 'success' | 'error';
 
@@ -51,6 +52,8 @@ export const useTipz = (): UseTipzReturn => {
       const result = await contractSendTip(creator, amount, message);
       window.clearTimeout(submittingTimer);
       window.clearTimeout(confirmingTimer);
+      
+      analytics.trackEvent('tip_sent', { amount: parseFloat(amount) });
       
       setState((prev) => ({ 
         ...prev, 

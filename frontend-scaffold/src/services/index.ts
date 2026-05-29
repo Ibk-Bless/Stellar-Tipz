@@ -5,3 +5,5 @@ export * from './eventStream';
 export * from './cache';
 export * from './featureFlags';
 export * as serviceWorker from './serviceWorker';
+export * from './analytics';
+

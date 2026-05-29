@@ -16,7 +16,9 @@ import { useI18n } from "@/i18n";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import OnboardingTour from "@/features/onboarding/OnboardingTour";
+
 import { onUpdateAvailable, skipWaiting } from "@/services/serviceWorker";
 
 const PageFallback: React.FC = () => (
@@ -38,6 +40,7 @@ const AppRoutes: React.FC = () => {
   const { t } = useI18n();
   const { isOffline } = useOfflineStatus();
   const reduceMotion = useReducedMotion();
+  useAnalytics();
   const [updateReady, setUpdateReady] = React.useState(false);
   const skipLinkText = t("app.skipToMain");
 
