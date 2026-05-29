@@ -12,12 +12,12 @@ interface RateLimiterConfig {
 interface QueuedRequest<T> {
   fn: () => Promise<T>;
   resolve: (value: T) => void;
-  reject: (error: any) => void;
+  reject: (error: unknown) => void;
   timestamp: number;
 }
 
 export class RateLimiter {
-  private queue: QueuedRequest<any>[] = [];
+  private queue: QueuedRequest<unknown>[] = [];
   private processing = false;
   private requestTimestamps: number[] = [];
   private readonly maxPerSecond: number;
@@ -131,12 +131,12 @@ export async function withExponentialBackoff<T>(
   maxRetries = 3,
   baseDelay = 1000
 ): Promise<T> {
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error;
 
       // Check if it's a 429 (Too Many Requests) error

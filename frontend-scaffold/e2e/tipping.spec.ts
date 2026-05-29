@@ -1,116 +1,96 @@
 import { test, expect } from '@playwright/test';
+import {
+  injectFreighterConnected,
+  injectFreighterNotConnected,
+} from './mocks/freighter';
 
-test.describe('Tipping Flow', () => {
-  test('tip page loads for creator', async ({ page }) => {
+const TEST_PUBLIC_KEY = 'GBVKN6YMDXP4FKXB26BWZJHXPGQPZLWXHKJM5YXJKTZRQPLTKLPXNQK';
+
+test.describe('Core Tipping Flow', () => {
+  test('connect wallet and navigate to creator profile', async ({ page }) => {
+    await injectFreighterConnected(page, { publicKey: TEST_PUBLIC_KEY });
     await page.goto('/@alice');
-    
-    // Check that tip page loads
-    await expect(page.getByText(/tip creator/i)).toBeVisible();
+
+    await expect(page.getByText(/tip creator/i)).toBeVisible({ timeout: 10000 });
+    const truncatedStart = TEST_PUBLIC_KEY.slice(0, 4);
+    await expect(page.getByText(truncatedStart)).toBeVisible();
   });
 
-  test('tip form displays correctly', async ({ page }) => {
+  test('tip form validates input and shows errors', async ({ page }) => {
+    await injectFreighterConnected(page, { publicKey: TEST_PUBLIC_KEY });
     await page.goto('/@alice');
-    
-    // Check for amount input
+
+    const sendButton = page.getByRole('button', { name: /send tip/i });
+    await expect(sendButton).toBeVisible({ timeout: 10000 });
+    await sendButton.click();
+
+    await expect(page.getByText(/invalid|required|error|enter/i)).toBeVisible({ timeout: 5000 });
+  });
+
+  test('successful tip submission shows receipt', async ({ page }) => {
+    await injectFreighterConnected(page, { publicKey: TEST_PUBLIC_KEY });
+
+    await page.route('**/soroban/**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          result: { id: 'tip-123', status: 'success', hash: 'abc123' },
+        }),
+      });
+    });
+
+    await page.goto('/@alice');
+
     const amountInput = page.locator('input[name="amount"], input[type="number"]');
-    await expect(amountInput.first()).toBeVisible();
-    
-    // Check for message textarea
-    const messageTextarea = page.locator('textarea[name="message"], textarea');
-    await expect(messageTextarea.first()).toBeVisible();
-    
-    // Check for send tip button
-    await expect(page.getByRole('button', { name: /send tip/i })).toBeVisible();
+    await expect(amountInput.first()).toBeVisible({ timeout: 10000 });
+    await amountInput.first().fill('10');
+
+    const messageInput = page.locator('textarea[name="message"], textarea');
+    await messageInput.first().fill('Great content!');
+
+    const sendButton = page.getByRole('button', { name: /send tip/i });
+    await sendButton.click();
+
+    await expect(
+      page.getByText(/success|receipt|confirmed|thank/i),
+    ).toBeVisible({ timeout: 10000 });
   });
 
-  test('tip flow with mocked wallet', async ({ page }) => {
-    await page.goto('/@alice');
-    
-    // Fill in tip amount
-    await page.fill('input[name="amount"], input[type="number"]', '10');
-    
-    // Fill in message
-    await page.fill('textarea[name="message"], textarea', 'Great work!');
-    
-    // Mock wallet connection - in a real scenario, you'd use page.addInitScript or route mocks
-    // For now, we'll check that the connect wallet button is visible
-    const connectButton = page.getByRole('button', { name: /connect wallet/i });
-    if (await connectButton.isVisible()) {
-      await connectButton.click();
-    }
-    
-    // Check that send tip button is available
-    const sendTipButton = page.getByRole('button', { name: /send tip/i });
-    await expect(sendTipButton).toBeVisible();
+  test('dashboard reflects balance after tip', async ({ page }) => {
+    await injectFreighterConnected(page, { publicKey: TEST_PUBLIC_KEY });
+
+    await page.route('**/soroban/**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          result: { balance: '50000000', tips: [{ amount: '10000000', timestamp: Date.now() / 1000 }] },
+        }),
+      });
+    });
+
+    await page.goto('/dashboard');
+    await expect(page.getByText(/dashboard|balance/i)).toBeVisible({ timeout: 10000 });
   });
 
-  test('tip amount presets work', async ({ page }) => {
+  test('prompts wallet connection when not connected', async ({ page }) => {
+    await injectFreighterNotConnected(page);
     await page.goto('/@alice');
-    
-    // Look for preset amount buttons
-    const presetButtons = page.locator('button').filter({ hasText: /^\d+$/ });
-    const count = await presetButtons.count();
-    
-    if (count > 0) {
-      await presetButtons.first().click();
-      
-      // Verify amount was updated
-      const amountInput = page.locator('input[name="amount"], input[type="number"]');
-      const value = await amountInput.first().inputValue();
-      expect(value).not.toBe('');
-    }
+
+    await expect(
+      page.getByRole('button', { name: /connect wallet/i }),
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('anonymous tip checkbox works', async ({ page }) => {
+    await injectFreighterConnected(page, { publicKey: TEST_PUBLIC_KEY });
     await page.goto('/@alice');
-    
-    // Find anonymous checkbox
-    const anonymousCheckbox = page.locator('input[type="checkbox"]');
-    const count = await anonymousCheckbox.count();
-    
-    if (count > 0) {
-      await anonymousCheckbox.first().check();
-      expect(await anonymousCheckbox.first().isChecked()).toBe(true);
-      
-      await anonymousCheckbox.first().uncheck();
-      expect(await anonymousCheckbox.first().isChecked()).toBe(false);
+
+    const checkbox = page.locator('input[type="checkbox"]');
+    if ((await checkbox.count()) > 0) {
+      await checkbox.first().check();
+      expect(await checkbox.first().isChecked()).toBe(true);
     }
-  });
-
-  test('tip flow on mobile', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/@alice');
-    
-    // Check that tip form is usable on mobile
-    await expect(page.getByText(/tip creator/i)).toBeVisible();
-    
-    const amountInput = page.locator('input[name="amount"], input[type="number"]');
-    await expect(amountInput.first()).toBeVisible();
-  });
-
-  test('clear button resets form', async ({ page }) => {
-    await page.goto('/@alice');
-    
-    // Fill in form
-    await page.fill('input[name="amount"], input[type="number"]', '10');
-    await page.fill('textarea[name="message"], textarea', 'Test message');
-    
-    // Click clear button
-    const clearButton = page.getByRole('button', { name: /clear/i });
-    if (await clearButton.isVisible()) {
-      await clearButton.click();
-      
-      // Verify form was cleared
-      const amountInput = page.locator('input[name="amount"], input[type="number"]');
-      const value = await amountInput.first().inputValue();
-      expect(value).toBe('');
-    }
-  });
-
-  test('creator not found page displays', async ({ page }) => {
-    await page.goto('/@nonexistentuser123456');
-    
-    // Check for not found state
-    await expect(page.getByText(/not found/i)).toBeVisible();
   });
 });

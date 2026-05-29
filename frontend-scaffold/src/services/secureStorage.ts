@@ -18,7 +18,7 @@ import { logger } from "./logger";
 
 class SecureStorage {
   private isCryptoAvailable: boolean;
-  private memoryStorage: Map<string, any> = new Map();
+  private memoryStorage: Map<string, unknown> = new Map();
   private key: CryptoKey | null = null;
   private readonly prefix = 'tipz_';
   private readonly ENTROPY_KEY = '_st_entropy';
@@ -127,7 +127,7 @@ class SecureStorage {
   /**
    * Encrypts and stores data in localStorage.
    */
-  async set(key: string, value: any, options: StorageOptions = {}): Promise<void> {
+  async set(key: string, value: unknown, options: StorageOptions = {}): Promise<void> {
     const fullKey = this.prefix + key;
     const expiry = options.ttl ? Date.now() + options.ttl : null;
 
@@ -165,7 +165,7 @@ class SecureStorage {
   /**
    * Retrieves and decrypts data from localStorage.
    */
-  async get<T = any>(key: string): Promise<T | null> {
+  async get<T = unknown>(key: string): Promise<T | null> {
     const fullKey = this.prefix + key;
 
     // Check memory storage first (fallback)

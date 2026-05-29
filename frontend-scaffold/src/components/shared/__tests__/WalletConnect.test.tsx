@@ -17,7 +17,7 @@ describe('WalletConnect', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useWallet as any).mockReturnValue({
+    vi.mocked(useWallet).mockReturnValue({
       publicKey: null,
       connected: false,
       connecting: false,
@@ -27,7 +27,7 @@ describe('WalletConnect', () => {
       isWalletInstalled: mockIsWalletInstalled,
       setError: mockSetError,
     });
-    (useProfile as any).mockReturnValue({ profile: null });
+    vi.mocked(useProfile).mockReturnValue({ profile: null });
   });
 
   it('shows all supported wallet options when button is clicked', () => {

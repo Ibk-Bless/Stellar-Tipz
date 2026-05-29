@@ -14,7 +14,7 @@ describe("ProfileCard", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useFavorites as any).mockReturnValue({
+    vi.mocked(useFavorites).mockReturnValue({
       isFavorite: mockIsFavorite,
       toggleFavorite: mockToggleFavorite,
     });

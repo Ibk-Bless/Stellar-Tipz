@@ -28,7 +28,7 @@ describe("FavoritesList", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useFavorites as any).mockReturnValue({
+    vi.mocked(useFavorites).mockReturnValue({
       favorites: mockFavorites,
       sortedFavorites: (sortBy: string) => {
         if (sortBy === 'alphabetical') return [...mockFavorites].sort((a, b) => a.username.localeCompare(b.username));
@@ -51,7 +51,7 @@ describe("FavoritesList", () => {
     );
 
   it("renders empty state when no favorites", () => {
-    (useFavorites as any).mockReturnValue({
+    vi.mocked(useFavorites).mockReturnValue({
       favorites: [],
       sortedFavorites: () => [],
       removeFavorite: mockRemoveFavorite,

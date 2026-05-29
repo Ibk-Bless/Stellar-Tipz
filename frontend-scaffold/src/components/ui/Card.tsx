@@ -50,26 +50,28 @@ const Card: React.FC<CardProps> = ({
     }
   };
 
-  const props: any = {
+  const sharedProps: React.HTMLAttributes<HTMLElement> &
+    React.ButtonHTMLAttributes<HTMLButtonElement> &
+    React.AnchorHTMLAttributes<HTMLAnchorElement> = {
     className: `bg-white border-3 border-black ${paddings[padding]} ${hoverClass} ${interactiveClass} ${className}`,
     style: { boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' },
   };
 
   if (Component === 'button') {
-    props.type = 'button';
-    props.onClick = onClick;
-    props.onKeyDown = handleKeyDown;
+    sharedProps.type = 'button';
+    sharedProps.onClick = onClick;
+    sharedProps.onKeyDown = handleKeyDown;
   } else if (Component === 'a') {
-    props.href = href;
-    props.onClick = onClick;
+    sharedProps.href = href;
+    sharedProps.onClick = onClick;
   } else if (isInteractive) {
-    props.role = 'button';
-    props.tabIndex = 0;
-    props.onClick = onClick;
-    props.onKeyDown = handleKeyDown;
+    sharedProps.role = 'button';
+    sharedProps.tabIndex = 0;
+    sharedProps.onClick = onClick;
+    sharedProps.onKeyDown = handleKeyDown;
   }
 
-  return <Component {...props}>{children}</Component>;
+  return <Component {...sharedProps}>{children}</Component>;
 };
 
 export default Card;

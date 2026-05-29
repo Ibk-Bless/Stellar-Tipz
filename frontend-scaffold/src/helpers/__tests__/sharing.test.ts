@@ -69,7 +69,7 @@ describe('sharing helpers', () => {
 
     it('throws error for unsupported platform', () => {
       expect(() => {
-        generateShareURL('invalid' as any, 'tip', {});
+        generateShareURL('invalid' as unknown as string, 'tip', {});
       }).toThrow('Unsupported platform: invalid');
     });
   });
@@ -88,7 +88,7 @@ describe('sharing helpers', () => {
     it('falls back to execCommand when clipboard API unavailable', async () => {
       // Mock clipboard API as unavailable
       const originalClipboard = mockNavigator.clipboard;
-      delete (mockNavigator as any).clipboard;
+      delete (mockNavigator as { clipboard?: unknown }).clipboard;
       
       // Mock DOM methods
       const mockTextArea = {
@@ -98,9 +98,9 @@ describe('sharing helpers', () => {
         select: vi.fn(),
       };
       
-      const createElementSpy = vi.spyOn(document, 'createElement').mockReturnValue(mockTextArea as any);
-      const appendChildSpy = vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockTextArea as any);
-      const removeChildSpy = vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockTextArea as any);
+      const createElementSpy = vi.spyOn(document, 'createElement').mockReturnValue(mockTextArea as unknown as HTMLTextAreaElement);
+      const appendChildSpy = vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockTextArea as unknown as HTMLTextAreaElement);
+      const removeChildSpy = vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockTextArea as unknown as HTMLTextAreaElement);
       const execCommandSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
       
       const result = await copyToClipboard('test text');
@@ -143,7 +143,7 @@ describe('sharing helpers', () => {
 
     it('returns false when Web Share API unavailable', async () => {
       const originalShare = mockNavigator.share;
-      delete (mockNavigator as any).share;
+      delete (mockNavigator as { share?: unknown }).share;
       
       const result = await nativeShare('tip', { amount: 10, to: 'alice' });
       
@@ -169,7 +169,7 @@ describe('sharing helpers', () => {
 
     it('returns false when Web Share API is unavailable', () => {
       const originalShare = mockNavigator.share;
-      delete (mockNavigator as any).share;
+      delete (mockNavigator as { share?: unknown }).share;
       
       expect(isNativeShareSupported()).toBe(false);
       

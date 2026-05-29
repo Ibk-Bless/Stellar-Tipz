@@ -27,7 +27,7 @@ afterEach(() => {
 
 // Mock useNavigate
 vi.mock('react-router-dom', async (importOriginal) => {
-  const mod = await importOriginal() as any;
+  const mod = await importOriginal() as unknown as Record<string, unknown>;
   return {
     ...mod,
     useNavigate: () => vi.fn(),

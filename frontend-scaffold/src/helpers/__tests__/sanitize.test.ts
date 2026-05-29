@@ -4,6 +4,7 @@ import {
   sanitizePlainText,
   sanitizeUsername,
   sanitizeURL,
+  sanitizeHTML,
   hasHomoglyphs,
 } from '../sanitize';
 import { validateUsername } from '../validation';
@@ -178,6 +179,51 @@ describe('hasHomoglyphs', () => {
   it('returns false for pure Cyrillic string', () => {
     // No Latin characters present — not a homograph attack
     expect(hasHomoglyphs('алиса')).toBe(false);
+  });
+});
+
+// ── sanitizeHTML (XSS payloads) ───────────────────────────────────────────────
+
+describe('sanitizeHTML XSS protection', () => {
+  it('strips script tags', () => {
+    expect(sanitizeHTML('<script>alert(1)</script>')).not.toContain('<script>');
+    expect(sanitizeHTML('<script>alert(1)</script>')).toBe('');
+  });
+
+  it('strips onerror event handlers', () => {
+    const result = sanitizeHTML('<img src=x onerror="alert(1)">');
+    expect(result).not.toContain('onerror');
+    expect(result).not.toContain('<img');
+  });
+
+  it('blocks data URIs in href', () => {
+    const result = sanitizeHTML('<a href="data:text/html,<script>alert(1)</script>">click</a>');
+    expect(result).not.toContain('data:');
+    expect(result).toContain('">click</a>');
+  });
+
+  it('strips SVG onload event', () => {
+    const result = sanitizeHTML('<svg onload="alert(1)">');
+    expect(result).not.toContain('onload');
+    expect(result).not.toContain('<svg');
+  });
+
+  it('blocks javascript: in href', () => {
+    const result = sanitizeHTML('<a href="javascript:alert(1)">click</a>');
+    expect(result).not.toContain('javascript:');
+    expect(result).toContain('">click</a>');
+  });
+
+  it('strips unknown tags entirely', () => {
+    const result = sanitizeHTML('<div>safe</div>');
+    expect(result).not.toContain('<div');
+    expect(result).toBe('safe');
+  });
+
+  it('strips style attributes', () => {
+    const result = sanitizeHTML('<span style="color:red">text</span>');
+    expect(result).not.toContain('style');
+    expect(result).toBe('<span>text</span>');
   });
 });
 

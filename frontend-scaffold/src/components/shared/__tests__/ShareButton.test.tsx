@@ -32,7 +32,7 @@ describe('ShareButton', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (mockSharing.isNativeShareSupported as any).mockReturnValue(false);
+    vi.mocked(mockSharing.isNativeShareSupported).mockReturnValue(false);
   });
 
   it('renders button variant by default', () => {
@@ -60,8 +60,8 @@ describe('ShareButton', () => {
   });
 
   it('uses native share when supported', async () => {
-    (mockSharing.isNativeShareSupported as any).mockReturnValue(true);
-    (mockSharing.nativeShare as any).mockResolvedValue(true);
+    vi.mocked(mockSharing.isNativeShareSupported).mockReturnValue(true);
+    vi.mocked(mockSharing.nativeShare).mockResolvedValue(true);
     
     const user = userEvent.setup();
     render(<ShareButton {...defaultProps} />);
@@ -72,8 +72,8 @@ describe('ShareButton', () => {
   });
 
   it('falls back to modal when native share fails', async () => {
-    (mockSharing.isNativeShareSupported as any).mockReturnValue(true);
-    (mockSharing.nativeShare as any).mockResolvedValue(false);
+    vi.mocked(mockSharing.isNativeShareSupported).mockReturnValue(true);
+    vi.mocked(mockSharing.nativeShare).mockResolvedValue(false);
     
     const user = userEvent.setup();
     render(<ShareButton {...defaultProps} />);
@@ -123,7 +123,7 @@ describe('ShareButton', () => {
   });
 
   it('copies link to clipboard when copy button clicked', async () => {
-    (mockSharing.copyToClipboard as any).mockResolvedValue(true);
+    vi.mocked(mockSharing.copyToClipboard).mockResolvedValue(true);
     const user = userEvent.setup();
     
     render(<ShareButton {...defaultProps} />);
@@ -135,7 +135,7 @@ describe('ShareButton', () => {
   });
 
   it('shows copied state after successful copy', async () => {
-    (mockSharing.copyToClipboard as any).mockResolvedValue(true);
+    vi.mocked(mockSharing.copyToClipboard).mockResolvedValue(true);
     const user = userEvent.setup();
     
     render(<ShareButton {...defaultProps} />);

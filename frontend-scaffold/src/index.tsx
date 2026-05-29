@@ -39,8 +39,8 @@ function InstallPromptBanner() {
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setVisible(true);
     };
-    window.addEventListener("beforeinstallprompt", handler as any);
-    return () => window.removeEventListener("beforeinstallprompt", handler as any);
+    window.addEventListener("beforeinstallprompt", handler as EventListener);
+    return () => window.removeEventListener("beforeinstallprompt", handler as EventListener);
   }, []);
 
   if (!visible) return null;

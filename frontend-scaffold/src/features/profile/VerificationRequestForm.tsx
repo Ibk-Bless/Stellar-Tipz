@@ -62,7 +62,12 @@ export const VerificationRequestForm: React.FC<VerificationRequestFormProps> = (
               name="verificationType"
               value={type.id}
               checked={selectedType === type.id}
-              onChange={(e) => setSelectedType(e.target.value as any)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'Identity' || val === 'SocialMedia' || val === 'Community') {
+                  setSelectedType(val);
+                }
+              }}
               className="mt-1"
             />
             <div className="flex-1">

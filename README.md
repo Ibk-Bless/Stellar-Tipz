@@ -307,9 +307,12 @@ Node.js 18+
 Rust & Cargo
 Soroban CLI
 Freighter Wallet extension
+Docker & Docker Compose (optional, for containerized dev)
 ```
 
 ### Installation
+
+#### Option A: Local development
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/stellar-tipz.git
@@ -320,6 +323,24 @@ npm install
 
 # Start development server
 npm run dev
+```
+
+#### Option B: Docker development environment
+```bash
+# Build and start all services
+docker compose --profile dev up -d
+
+# Frontend is available at http://localhost:3000
+# Contract changes auto-reload via cargo watch
+
+# View logs
+docker compose logs -f
+
+# Run contract tests inside container
+docker compose exec contract cargo test
+
+# Stop all services
+docker compose down
 ```
 
 ### Deploy Contract (Testnet)

@@ -7,17 +7,7 @@ import type { ProfileFormData } from "../../types/profile";
 import { THEME_COLORS } from "./profileThemes";
 import type { ThemeKey } from "./profileThemes";
 export type { ThemeKey } from "./profileThemes";
-import { sanitize, sanitizeHTML } from "@/helpers/sanitize";
-
-function renderMarkdown(text: string): string {
-  const escaped = sanitize(text);
-  const withMarkup = escaped
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/`(.+?)`/g, "<code>$1</code>")
-    .replace(/\n/g, "<br />");
-  return sanitizeHTML(withMarkup);
-}
+import { renderMarkdown } from "@/helpers/markdown";
 
 interface ProfilePreviewProps {
   profile: Profile;

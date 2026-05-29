@@ -51,7 +51,13 @@ describe('soroban service', () => {
   const mockContractId = 'CAAQCAIBAEAQCAIBAEAQCAIBAEAQCAIBAEAQCAIBAEAQCAIBAEAQC526';
   const mockRpcUrl = 'https://soroban-testnet.stellar.org/';
 
-  let mockServer: any;
+  let mockServer: {
+    getAccount: ReturnType<typeof vi.fn>;
+    simulateTransaction: ReturnType<typeof vi.fn>;
+    sendTransaction: ReturnType<typeof vi.fn>;
+    getTransaction: ReturnType<typeof vi.fn>;
+    prepareTransaction: ReturnType<typeof vi.fn>;
+  };
   let mockAccount: Account;
 
   beforeEach(() => {
@@ -67,7 +73,7 @@ describe('soroban service', () => {
       prepareTransaction: vi.fn(),
     };
 
-    (SorobanRpc.Server as any).mockImplementation(function MockSorobanServer() {
+    vi.mocked(SorobanRpc.Server).mockImplementation(function MockSorobanServer() {
       return mockServer;
     });
   });
@@ -182,7 +188,7 @@ describe('soroban service', () => {
         result: mockResult,
       });
       
-      (SorobanRpc.Api.isSimulationSuccess as any).mockReturnValue(true);
+      vi.mocked(SorobanRpc.Api.isSimulationSuccess).mockReturnValue(true);
 
       const result = await simulateTx<string>(tx, mockServer);
       expect(result).toBe('XLM');
@@ -200,7 +206,7 @@ describe('soroban service', () => {
         error: 'Simulation failed',
       });
       
-      (SorobanRpc.Api.isSimulationSuccess as any).mockReturnValue(false);
+      vi.mocked(SorobanRpc.Api.isSimulationSuccess).mockReturnValue(false);
 
       await expect(simulateTx<string>(tx, mockServer)).rejects.toThrow(
         'cannot simulate transaction'
@@ -308,7 +314,7 @@ describe('soroban service', () => {
         result: mockResult,
       });
       
-      (SorobanRpc.Api.isSimulationSuccess as any).mockReturnValue(true);
+      vi.mocked(SorobanRpc.Api.isSimulationSuccess).mockReturnValue(true);
 
       const symbol = await getTokenSymbol(mockContractId, txBuilder, mockServer);
       expect(symbol).toBe('XLM');
@@ -324,7 +330,7 @@ describe('soroban service', () => {
         result: mockResult,
       });
       
-      (SorobanRpc.Api.isSimulationSuccess as any).mockReturnValue(true);
+      vi.mocked(SorobanRpc.Api.isSimulationSuccess).mockReturnValue(true);
 
       const name = await getTokenName(mockContractId, txBuilder, mockServer);
       expect(name).toBe('Stellar Lumens');
@@ -340,7 +346,7 @@ describe('soroban service', () => {
         result: mockResult,
       });
       
-      (SorobanRpc.Api.isSimulationSuccess as any).mockReturnValue(true);
+      vi.mocked(SorobanRpc.Api.isSimulationSuccess).mockReturnValue(true);
 
       const decimals = await getTokenDecimals(mockContractId, txBuilder, mockServer);
       expect(decimals).toBe(7);
@@ -356,7 +362,7 @@ describe('soroban service', () => {
         result: mockResult,
       });
       
-      (SorobanRpc.Api.isSimulationSuccess as any).mockReturnValue(true);
+      vi.mocked(SorobanRpc.Api.isSimulationSuccess).mockReturnValue(true);
 
       const balance = await getTokenBalance(mockPubKey, mockContractId, txBuilder, mockServer);
       expect(balance).toBeDefined();
@@ -414,7 +420,7 @@ describe('soroban service', () => {
       };
       mockServer.simulateTransaction.mockResolvedValue(mockSimResponse);
       
-      (SorobanRpc.Api.isSimulationError as any).mockReturnValue(false);
+      vi.mocked(SorobanRpc.Api.isSimulationError).mockReturnValue(false);
 
       const fee = await getEstimatedFee(
         mockContractId,
@@ -438,7 +444,7 @@ describe('soroban service', () => {
         error: mockError,
       });
       
-      (SorobanRpc.Api.isSimulationError as any).mockReturnValue(true);
+      vi.mocked(SorobanRpc.Api.isSimulationError).mockReturnValue(true);
 
       await expect(
         getEstimatedFee(

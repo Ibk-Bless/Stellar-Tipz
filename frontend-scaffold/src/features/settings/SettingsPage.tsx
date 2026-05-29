@@ -79,7 +79,7 @@ export const SettingsPage: React.FC = () => {
     }));
   };
 
-  const handleChange = (key: keyof Settings, value: any) => {
+  const handleChange = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setSettings((prev) => ({
       ...prev,
       [key]: value,

@@ -57,7 +57,7 @@ const FavoritesList: React.FC = () => {
            <ArrowUpDown size={14} className="text-black" />
            <select 
              value={sortBy}
-             onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as 'recent' | 'most_tipped' | 'alphabetical')}
              className="bg-transparent border-none text-xs font-black uppercase focus:ring-0 cursor-pointer p-0 pr-6"
            >
              <option value="recent">Recently Added</option>

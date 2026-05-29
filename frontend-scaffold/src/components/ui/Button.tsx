@@ -55,7 +55,7 @@ const Button: React.FC<ButtonProps> = ({
   }, [isLoadingState, preservedWidth]);
 
   const leadingIcon = isLoadingState ? (
-    <Loader size="sm" {...({ role: "status", "aria-label": "Loading" } as any)} />
+    <Loader size="sm" role="status" aria-label="Loading" />
   ) : icon;
   
   const content = isLoadingState 

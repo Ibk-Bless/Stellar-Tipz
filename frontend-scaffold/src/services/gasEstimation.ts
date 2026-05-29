@@ -4,7 +4,7 @@
  * Issue #599
  */
 
-import { SorobanRpc } from '@stellar/stellar-sdk';
+import { SorobanRpc, Transaction } from '@stellar/stellar-sdk';
 import { logger } from './logger';
 
 export interface FeeEstimation {
@@ -29,7 +29,7 @@ const HIGH_FEE_THRESHOLD_XLM = 0.1; // 0.1 XLM
  * Simulate a transaction and estimate gas costs
  */
 export async function estimateTransactionFee(
-  transaction: any,
+  transaction: Transaction,
   server: SorobanRpc.Server,
   userBalance?: string
 ): Promise<FeeEstimation> {

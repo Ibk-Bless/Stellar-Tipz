@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Transition, type Variants } from 'framer-motion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 export type AnimationType = 'slide' | 'fade' | 'none';
@@ -9,10 +9,10 @@ interface PageTransitionProps {
   children: React.ReactNode;
   animationType?: AnimationType;
   customAnimation?: {
-    initial?: any;
-    animate?: any;
-    exit?: any;
-    transition?: any;
+    initial?: Variants;
+    animate?: Variants;
+    exit?: Variants;
+    transition?: Transition;
   };
 }
 

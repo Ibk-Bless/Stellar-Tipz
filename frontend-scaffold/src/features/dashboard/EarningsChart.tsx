@@ -230,7 +230,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ tips, earningsData }) => 
                 />
                 <YAxis tick={{ fontSize: 10, fontWeight: 900 }} width={44} />
                 <Tooltip
-                  formatter={(value: any) => [`${Number(value).toFixed(2)} XLM`, "Earnings"]}
+                  formatter={(value: number | string) => [`${Number(value).toFixed(2)} XLM`, "Earnings"]}
                   contentStyle={{
                     border: "2px solid #000",
                     borderRadius: 0,

@@ -13,7 +13,7 @@ import type { Profile } from "@/types/contract";
 import type { ProfileFormData } from "@/types/profile";
 import ProfilePreview from "./ProfilePreview";
 import { THEME_COLORS } from "./profileThemes";
-import { sanitize, sanitizeHTML } from "@/helpers/sanitize";
+import { renderMarkdown } from "@/helpers/markdown";
 import {
   MAX_BIO_LENGTH,
   validateBio,
@@ -79,20 +79,6 @@ function isValidUrl(url: string): boolean {
   } catch {
     return false;
   }
-}
-
-function renderMarkdown(text: string): string {
-  // Escape HTML entities in the raw text first to neutralize any injected markup
-  const escaped = sanitize(text);
-  const withMarkup = escaped
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(
-      /`(.+?)`/g,
-      "<code class='bg-gray-100 px-1 rounded font-mono text-xs'>$1</code>",
-    )
-    .replace(/\n/g, "<br />");
-  return sanitizeHTML(withMarkup);
 }
 
 interface EditProfileFormProps {

@@ -31,7 +31,7 @@ describe('Component memoization', () => {
   it('LeaderboardRow does not re-render on parent update with same props', () => {
     const renderSpy = vi.fn();
     
-    const MemoizedRow = React.memo(({ entry }: any) => {
+    const MemoizedRow = React.memo(({ entry }: { entry: Record<string, unknown> }) => {
       renderSpy();
       return (
         <BrowserRouter>

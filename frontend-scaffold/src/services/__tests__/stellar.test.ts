@@ -42,7 +42,7 @@ describe('stellar service', () => {
     });
 
     it('handles undefined address', () => {
-      const result = truncateAddress(undefined as any);
+      const result = truncateAddress(undefined as unknown as string);
       expect(result).toBe('');
     });
   });
@@ -56,7 +56,7 @@ describe('stellar service', () => {
         ],
       };
 
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
       });
@@ -75,7 +75,7 @@ describe('stellar service', () => {
         ],
       };
 
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
       });
@@ -89,7 +89,7 @@ describe('stellar service', () => {
         balances: [],
       };
 
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
       });
@@ -99,7 +99,7 @@ describe('stellar service', () => {
     });
 
     it('handles network errors gracefully', async () => {
-      (globalThis.fetch as any).mockRejectedValueOnce(
+      vi.mocked(globalThis.fetch).mockRejectedValueOnce(
         new Error('Network error')
       );
 
@@ -109,7 +109,7 @@ describe('stellar service', () => {
     });
 
     it('handles HTTP errors gracefully', async () => {
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: false,
         statusText: 'Not Found',
       });
@@ -120,7 +120,7 @@ describe('stellar service', () => {
     });
 
     it('handles malformed response', async () => {
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ invalid: 'response' }),
       });
@@ -130,7 +130,7 @@ describe('stellar service', () => {
     });
 
     it('handles timeout errors', async () => {
-      (globalThis.fetch as any).mockRejectedValueOnce(
+      vi.mocked(globalThis.fetch).mockRejectedValueOnce(
         new Error('Request timeout')
       );
 
@@ -148,7 +148,7 @@ describe('stellar service', () => {
         balances: [{ asset_type: 'native', balance: '100.0' }],
       };
 
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
       });
@@ -161,7 +161,7 @@ describe('stellar service', () => {
     });
 
     it('handles network errors', async () => {
-      (globalThis.fetch as any).mockRejectedValueOnce(
+      vi.mocked(globalThis.fetch).mockRejectedValueOnce(
         new Error('Network error')
       );
 
@@ -171,7 +171,7 @@ describe('stellar service', () => {
     });
 
     it('handles HTTP errors', async () => {
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: false,
         statusText: 'Not Found',
       });
@@ -189,7 +189,7 @@ describe('stellar service', () => {
         _embedded: { records: [] },
       };
 
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
       });
@@ -207,7 +207,7 @@ describe('stellar service', () => {
         _embedded: { records: [] },
       };
 
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
       });
@@ -220,7 +220,7 @@ describe('stellar service', () => {
     });
 
     it('handles network errors', async () => {
-      (globalThis.fetch as any).mockRejectedValueOnce(
+      vi.mocked(globalThis.fetch).mockRejectedValueOnce(
         new Error('Network error')
       );
 
@@ -230,7 +230,7 @@ describe('stellar service', () => {
     });
 
     it('handles HTTP errors', async () => {
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: false,
         statusText: 'Bad Request',
       });
@@ -245,7 +245,7 @@ describe('stellar service', () => {
     it('implements retry on network failure', async () => {
       let attemptCount = 0;
       
-      (globalThis.fetch as any).mockImplementation(() => {
+      vi.mocked(globalThis.fetch).mockImplementation(() => {
         attemptCount++;
         if (attemptCount < 3) {
           return Promise.reject(new Error('Network error'));
@@ -265,7 +265,7 @@ describe('stellar service', () => {
     it('handles rate limiting with exponential backoff', async () => {
       let attemptCount = 0;
       
-      (globalThis.fetch as any).mockImplementation(() => {
+      vi.mocked(globalThis.fetch).mockImplementation(() => {
         attemptCount++;
         if (attemptCount === 1) {
           return Promise.resolve({
@@ -291,7 +291,7 @@ describe('stellar service', () => {
 
   describe('error handling', () => {
     it('handles 404 Not Found for non-existent account', async () => {
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: false,
         status: 404,
         statusText: 'Not Found',
@@ -303,7 +303,7 @@ describe('stellar service', () => {
     });
 
     it('handles 500 Internal Server Error', async () => {
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
@@ -315,7 +315,7 @@ describe('stellar service', () => {
     });
 
     it('handles 503 Service Unavailable', async () => {
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: false,
         status: 503,
         statusText: 'Service Unavailable',
@@ -327,7 +327,7 @@ describe('stellar service', () => {
     });
 
     it('handles invalid JSON response', async () => {
-      (globalThis.fetch as any).mockResolvedValueOnce({
+      vi.mocked(globalThis.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => {
           throw new Error('Invalid JSON');
@@ -340,7 +340,7 @@ describe('stellar service', () => {
     });
 
     it('handles CORS errors', async () => {
-      (globalThis.fetch as any).mockRejectedValueOnce(
+      vi.mocked(globalThis.fetch).mockRejectedValueOnce(
         new Error('Failed to fetch: CORS policy')
       );
 
