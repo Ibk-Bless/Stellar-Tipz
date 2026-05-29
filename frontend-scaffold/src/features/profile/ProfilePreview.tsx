@@ -43,6 +43,10 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ profile, form }) => {
           <img
             src={bannerSrc}
             alt="Profile banner"
+            width={640}
+            height={112}
+            loading="lazy"
+            decoding="async"
             className="absolute inset-0 h-full w-full object-cover"
           />
         )}

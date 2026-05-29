@@ -42,6 +42,7 @@ const TipConfirm: React.FC<TipConfirmProps> = ({
           {/* Creator row */}
           <div className="flex items-center gap-3">
             <Avatar
+              src={creator.imageUrl || undefined}
               address={creator.owner}
               alt={creator.displayName || creator.username}
               fallback={creator.displayName || creator.username}

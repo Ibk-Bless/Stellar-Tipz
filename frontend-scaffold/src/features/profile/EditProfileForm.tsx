@@ -370,6 +370,10 @@ const EditProfileForm: React.FC<EditProfileFormProps> = ({
           <img
             src={form.bannerUrl}
             alt="Banner preview"
+            width={640}
+            height={80}
+            loading="lazy"
+            decoding="async"
             className="h-20 w-full object-cover border-2 border-black"
           />
         )}

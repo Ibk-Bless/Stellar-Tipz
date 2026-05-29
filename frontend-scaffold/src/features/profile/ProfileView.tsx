@@ -35,6 +35,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ profile }) => {
               size="xl"
               address={profile.owner}
               fallback={profile.displayName}
+              priority
             />
           </div>
           <div className="mt-6 w-full flex justify-center">

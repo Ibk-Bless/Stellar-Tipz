@@ -56,6 +56,7 @@ export const TipConfirmationModal: React.FC<TipConfirmationModalProps> = ({
       <div className="space-y-6">
         <div className="flex items-center gap-4 border-b-2 border-black pb-4">
           <Avatar
+            src={creator.imageUrl || undefined}
             address={creator.owner}
             alt={creator.displayName}
             fallback={creator.displayName}

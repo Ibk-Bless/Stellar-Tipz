@@ -80,11 +80,13 @@ const EmbedWidget: React.FC<EmbedWidgetProps> = ({
     >
       <Card className="flex-1 flex flex-col items-center justify-center text-center gap-4 border-2 border-current shadow-brutalist bg-transparent">
         <Avatar
+          src={creator.imageUrl || undefined}
           address={creator.owner}
           alt={creator.displayName}
           fallback={creator.displayName}
           size="xl"
           className="border-2 border-current"
+          priority
         />
         
         <div>

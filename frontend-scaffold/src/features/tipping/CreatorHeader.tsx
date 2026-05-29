@@ -20,6 +20,7 @@ const CreatorHeader: React.FC<CreatorHeaderProps> = ({ profile }) => {
         fallback={profile.displayName}
         address={profile.owner}
         size="xl"
+        priority
       />
 
       <div className="space-y-1">

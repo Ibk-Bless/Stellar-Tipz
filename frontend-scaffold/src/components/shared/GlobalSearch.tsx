@@ -261,8 +261,10 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                 >
                   <Clock size={14} className="text-gray-700 dark:text-gray-300 shrink-0" />
                   <Avatar
+                    src={profile.imageUrl || undefined}
                     alt={profile.displayName || profile.username}
                     address={profile.owner}
+                    fallback={profile.displayName || profile.username}
                     size="sm"
                   />
                   <div className="min-w-0 flex-1">
@@ -301,8 +303,10 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                 aria-selected={selectedIndex === index}
               >
                 <Avatar
+                  src={profile.imageUrl || undefined}
                   alt={profile.displayName || profile.username}
                   address={profile.owner}
+                  fallback={profile.displayName || profile.username}
                   size="sm"
                 />
                 <div className="min-w-0 flex-1">

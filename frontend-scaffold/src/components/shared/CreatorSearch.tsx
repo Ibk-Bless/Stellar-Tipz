@@ -139,7 +139,13 @@ const CreatorSearch: React.FC<CreatorSearchProps> = ({
                 onClick={() => handleSelect(profile)}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
               >
-                <Avatar alt={profile.displayName || profile.username} size="sm" />
+                <Avatar
+                  src={profile.imageUrl || undefined}
+                  alt={profile.displayName || profile.username}
+                  address={profile.owner}
+                  fallback={profile.displayName || profile.username}
+                  size="sm"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-sm truncate">
                     {profile.displayName || profile.username}

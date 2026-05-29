@@ -199,10 +199,12 @@ const TipPage: React.FC = () => {
           <div className="flex flex-col gap-5 border-b-2 border-dashed border-black pb-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <Avatar
+                src={creator.imageUrl || undefined}
                 address={creator.owner}
                 alt={creator.displayName}
                 fallback={creator.displayName}
                 size="xl"
+                priority
               />
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.25em] text-gray-800 dark:text-gray-200">

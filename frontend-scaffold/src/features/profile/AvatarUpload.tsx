@@ -90,7 +90,15 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({ onUploadSuccess, defaultIma
         onClick={() => fileInputRef.current?.click()}
       >
         {preview ? (
-          <img src={preview} alt="Avatar preview" className="w-full h-full object-cover" />
+          <img
+            src={preview}
+            alt="Avatar preview"
+            width={128}
+            height={128}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover"
+          />
         ) : (
           <div className="text-gray-700 dark:text-gray-300 flex flex-col items-center">
             <svg className="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

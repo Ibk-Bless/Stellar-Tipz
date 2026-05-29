@@ -1,6 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
-type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
+import {
+  AVATAR_DIMENSIONS,
+  AvatarSize,
+  getAvatarSizes,
+  getAvatarSrcSet,
+  normalizeAvatarSrc,
+} from '../../helpers/avatarImage';
 
 interface AvatarProps {
   src?: string;
@@ -9,6 +15,7 @@ interface AvatarProps {
   address?: string;
   fallback?: string;
   className?: string;
+  priority?: boolean;
 }
 
 const sizeClasses: Record<AvatarSize, string> = {
@@ -63,8 +70,11 @@ const Avatar: React.FC<AvatarProps> = ({
   address,
   fallback,
   className,
+  priority = false,
 }) => {
   const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [useOptimizedSrcSet, setUseOptimizedSrcSet] = useState(true);
   
   const bgColorClass = useMemo(() => {
     if (address) {
@@ -73,27 +83,57 @@ const Avatar: React.FC<AvatarProps> = ({
     return 'bg-gray-400';
   }, [address]);
 
-  const showImage = src && !imageError;
+  const normalizedSrc = useMemo(() => normalizeAvatarSrc(src), [src]);
+  const displaySize = AVATAR_DIMENSIONS[size];
+  const srcSet = useMemo(() => getAvatarSrcSet(src, size), [src, size]);
+  const showImage = Boolean(normalizedSrc) && !imageError;
   const showFallback = !showImage && fallback;
   const showAddressFallback = !showImage && !fallback && address;
 
+  useEffect(() => {
+    setImageError(false);
+    setImageLoaded(false);
+    setUseOptimizedSrcSet(true);
+  }, [normalizedSrc, srcSet]);
+
   return (
     <div
-      className={`${sizeClasses[size]} border-2 border-black overflow-hidden flex items-center justify-center font-bold text-white ${className || ''}`}
+      className={`${sizeClasses[size]} relative border-2 border-black overflow-hidden flex items-center justify-center font-bold text-white bg-gray-100 ${className || ''}`}
       title={alt}
+      style={{ aspectRatio: '1 / 1' }}
     >
-    {showImage ? (
-        <picture>
-          <source type="image/webp" srcSet={src.replace(/\.(png|jpe?g)$/i, '.webp')} />
+      {showImage ? (
+        <>
+          {!imageLoaded && (
+            <span
+              aria-hidden="true"
+              data-testid="avatar-placeholder"
+              className="absolute inset-0 z-10 bg-gray-200 animate-pulse"
+            />
+          )}
           <img
-            src={src}
+            src={normalizedSrc}
             alt={alt}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            decoding="async"
-            onError={() => setImageError(true)}
+            width={displaySize}
+            height={displaySize}
+            srcSet={useOptimizedSrcSet ? srcSet : undefined}
+            sizes={useOptimizedSrcSet && srcSet ? getAvatarSizes(size) : undefined}
+            className={`w-full h-full object-cover transition-opacity duration-200 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+            loading={priority ? 'eager' : 'lazy'}
+            decoding={priority ? 'sync' : 'async'}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              if (useOptimizedSrcSet && srcSet) {
+                setUseOptimizedSrcSet(false);
+                setImageLoaded(false);
+                return;
+              }
+              setImageError(true);
+            }}
           />
-        </picture>
+        </>
       ) : showFallback ? (
         <div className={`w-full h-full ${bgColorClass} flex items-center justify-center`}>
           {getInitials(fallback)}
