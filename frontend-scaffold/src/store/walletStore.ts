@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { secureStorage } from "../services/secureStorage";
 import type { WalletErrorType } from "../helpers/error";
 import { setUser } from "../services/sentry";
+import { analytics } from "../services/analytics";
 
 export type Network = 'TESTNET' | 'PUBLIC';
 type SigningStatus = 'idle' | 'signing' | 'signed' | 'error';
@@ -102,6 +103,7 @@ export const useWalletStore = create<WalletStore>()(
           sessionExpiresAt: Date.now() + SESSION_TIMEOUT_MS,
         });
         setUser(publicKey);
+        analytics.trackEvent("wallet_connected", { walletType: wt ?? "unknown" });
       },
 
       setAddress: (publicKey: string, walletType?: string) => {

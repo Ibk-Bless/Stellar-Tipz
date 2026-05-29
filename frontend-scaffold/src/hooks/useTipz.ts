@@ -3,6 +3,7 @@ import { useContract } from './useContract';
 import { useWallet } from './useWallet';
 import { encryptMessage } from '../helpers/encryption';
 import { logger } from '../services/logger';
+import { analytics } from '../services/analytics';
 
 export type TxStatus = 'idle' | 'signing' | 'submitting' | 'confirming' | 'success' | 'error';
 
@@ -66,6 +67,8 @@ export const useTipz = (): UseTipzReturn => {
       const result = await contractSendTip(creator, amount, finalMessage, isEncrypted);
       window.clearTimeout(submittingTimer);
       window.clearTimeout(confirmingTimer);
+      
+      analytics.trackEvent('tip_sent', { amount: parseFloat(amount) });
       
       setState((prev) => ({ 
         ...prev, 

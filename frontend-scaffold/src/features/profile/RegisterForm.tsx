@@ -16,6 +16,7 @@ import { useToastStore } from "@/store/toastStore";
 import { ProfileFormData } from "@/types/profile";
 import { categorizeError, ERRORS } from "@/helpers/error";
 import { useFormAutosave } from "@/hooks/useFormAutosave";
+import { analytics } from "@/services/analytics";
 
 type TxStatus =
   | "idle"
@@ -212,6 +213,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ initialImageUrl }) => {
           setTxHash(hash);
 
           setTxStatus("success");
+          analytics.trackEvent("profile_registered");
           addToast({
             message: "Profile registered successfully!",
             type: "success",
