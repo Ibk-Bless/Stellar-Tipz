@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ExternalLink, PenSquare, Wallet2, UserX } from "lucide-react";
+import { ExternalLink, PenSquare, Wallet2, UserX, Target } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import PageContainer from "../../components/layout/PageContainer";
@@ -14,6 +14,7 @@ import { useProfile, useContract } from "../../hooks";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { categorizeError } from "@/helpers/error";
 import { useToastStore } from "@/store/toastStore";
+import { useGoalStore } from "@/store/goalStore";
 import { createProfileShareData } from "@/helpers/sharing";
 import Skeleton from "@/components/ui/Skeleton";
 
@@ -24,6 +25,8 @@ import RegisterForm from "./RegisterForm";
 import WithdrawModal from "./WithdrawModal";
 import TipQRCode from "./TipQRCode";
 import EmbedCodeGenerator from "./EmbedCodeGenerator";
+import GoalProgress from "./GoalProgress";
+import SetGoalForm from "./SetGoalForm";
 import AchievementGallery from "@/features/achievements/AchievementGallery";
 import { useAchievements } from "@/hooks/useAchievements";
 import { logger } from "../../services/logger";
@@ -41,6 +44,10 @@ const ProfilePage: React.FC = () => {
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isDeregisterDialogOpen, setIsDeregisterDialogOpen] = useState(false);
   const [isDeregistering, setIsDeregistering] = useState(false);
+  const [showGoalForm, setShowGoalForm] = useState(false);
+  const goal = useGoalStore((s) =>
+    profile?.owner ? s.getCreatorGoal(profile.owner) : undefined,
+  );
   const [feeBps, setFeeBps] = useState(250); // Default to 250 (2.5%) as fallback
   const { unlockedIds } = useAchievements({ tipCount: profile?.totalTipsCount ?? 0 });
 
@@ -232,6 +239,47 @@ const ProfilePage: React.FC = () => {
             <Card padding="lg" className="border-4 shadow-brutalist">
               <ActivityFeed address={profile.owner} limit={5} />
             </Card>
+          </section>
+
+          {/* Fundraising Goal Section */}
+          <section role="region" aria-labelledby="goal-heading" className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <h2 id="goal-heading" className="text-2xl font-black uppercase tracking-tight">
+                Fundraising Goal
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowGoalForm((prev) => !prev)}
+                className="text-xs font-black uppercase underline decoration-2 underline-offset-4 hover:opacity-70 transition-opacity"
+              >
+                {goal ? 'Edit Goal' : 'Set Goal'}
+              </button>
+            </div>
+            {showGoalForm ? (
+              <Card padding="lg" className="border-4 shadow-brutalist">
+                <SetGoalForm
+                  creatorAddress={profile.owner}
+                  existingGoal={goal ?? null}
+                  onClose={() => setShowGoalForm(false)}
+                />
+              </Card>
+            ) : goal ? (
+              <Card padding="lg" className="border-4 shadow-brutalist">
+                <GoalProgress goal={goal} creatorAddress={profile.owner} showShare />
+              </Card>
+            ) : (
+              <Card padding="lg" className="border-4 bg-gray-50 shadow-brutalist">
+                <div className="flex flex-col items-center gap-3 py-4 text-center">
+                  <Target size={32} className="text-gray-300" />
+                  <p className="text-sm font-bold text-gray-500">
+                    No fundraising goal set yet
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Set a goal to motivate your supporters and track your progress.
+                  </p>
+                </div>
+              </Card>
+            )}
           </section>
 
           {/* Embed Section */}

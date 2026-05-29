@@ -135,6 +135,21 @@ export const getCreditTier = (score: number): CreditTier => {
   return "new";
 };
 
+/** Fundraising goal for a creator */
+export interface Goal {
+  creator: string;
+  title: string;
+  description: string;
+  targetAmount: string; // i128 as string (stroops)
+  raisedAmount: string;
+  supporters: number;
+  startDate: number;
+  endDate: number;
+  active: boolean;
+  completed: boolean;
+  completedAt?: number;
+}
+
 /** Recurring tip subscription from the contract */
 export interface Subscription {
   subscriber: string;

@@ -5,10 +5,13 @@ interface ShareData {
   message?: string;
   achievement?: string;
   username?: string;
+  goalTitle?: string;
+  goalTarget?: string;
+  goalProgress?: number;
 }
 
 type SharePlatform = 'twitter' | 'facebook' | 'linkedin' | 'reddit';
-type ShareType = 'tip' | 'achievement' | 'profile';
+type ShareType = 'tip' | 'achievement' | 'profile' | 'goal';
 
 import { logger } from '../services/logger';
 
@@ -69,6 +72,12 @@ export function generateShareText(type: ShareType, data: ShareData): string {
       }
       return 'Join me on Stellar Tipz - the future of creator support! #StellarTipz';
 
+    case 'goal':
+      if (data.goalTitle && data.username) {
+        return `I'm raising ${data.goalTarget} XLM for "${data.goalTitle}" on Stellar Tipz! Support my goal. #StellarTipz #Fundraising`;
+      }
+      return 'Support my fundraising goal on Stellar Tipz! #StellarTipz #Fundraising';
+
     default:
       return 'Check out Stellar Tipz - decentralized tipping on Stellar! 💫 #StellarTipz';
   }
@@ -87,6 +96,7 @@ export function generateShareLink(type: ShareType, data: ShareData): string {
       return BASE_URL;
 
     case 'achievement':
+    case 'goal':
       if (data.username) {
         return `${BASE_URL}/@${data.username}`;
       }
@@ -225,6 +235,20 @@ export function createAchievementShareData(
 /**
  * Generate share data for profile
  */
+export function createGoalShareData(
+  goalTitle: string,
+  goalTarget: string,
+  goalProgress: number,
+  creatorAddress: string,
+): ShareData {
+  return {
+    goalTitle,
+    goalTarget,
+    goalProgress,
+    username: creatorAddress,
+  };
+}
+
 export function createProfileShareData(username: string): ShareData {
   return {
     username,

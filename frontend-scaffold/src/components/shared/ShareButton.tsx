@@ -14,7 +14,7 @@ import {
   generateShareText,
 } from '@/helpers/sharing';
 
-type ShareType = 'tip' | 'achievement' | 'profile';
+type ShareType = 'tip' | 'achievement' | 'profile' | 'goal';
 type SharePlatform = 'twitter' | 'facebook' | 'linkedin' | 'reddit';
 
 interface ShareData {
@@ -24,6 +24,9 @@ interface ShareData {
   message?: string;
   achievement?: string;
   username?: string;
+  goalTitle?: string;
+  goalTarget?: string;
+  goalProgress?: number;
 }
 
 interface ShareButtonProps {

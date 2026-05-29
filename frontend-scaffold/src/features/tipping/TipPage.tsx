@@ -32,6 +32,8 @@ import TipPageSkeleton from "./TipPageSkeleton";
 import TipAmountInput from "./TipAmountInput";
 import TipResult from "./TipResult";
 import RecentTips from "./RecentTips";
+import GoalProgress from "@/features/profile/GoalProgress";
+import { useGoalStore } from "@/store/goalStore";
 import { TipConfirmationModal } from "./TipConfirmationModal";
 import { useTipFlow } from "./useTipFlow";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -54,6 +56,8 @@ const TipPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [creator, setCreator] = useState<Profile | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const goals = useGoalStore((s) => s.goals);
+  const creatorGoal = creator ? goals.find((g) => g.creator === creator.owner && g.active) : undefined;
 
   const fetchCreator = useCallback(async () => {
     if (!username) return;
@@ -277,6 +281,8 @@ const TipPage: React.FC = () => {
               </p>
             </div>
           </div>
+
+          {creatorGoal && <GoalProgress goal={creatorGoal} creatorAddress={creator.owner} showShare />}
         </Card>
 
         <Card className="space-y-5" padding="lg">
