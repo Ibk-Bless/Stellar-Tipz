@@ -32,13 +32,24 @@ vi.mock('@/hooks/usePageTitle', () => ({
 }));
 
 const mockUseWalletStore = vi.fn();
+
+// These mocks apply the selector when provided so that components that call
+// useWalletStore((state) => state.publicKey) receive the selected primitive
+// value rather than the full state object (which would cause .toLowerCase()
+// to throw a TypeError in LeaderboardRow / LeaderboardTable).
 vi.mock('@/store/walletStore', () => ({
-  useWalletStore: () => mockUseWalletStore(),
+  useWalletStore: (selector?: (s: unknown) => unknown) => {
+    const state = mockUseWalletStore();
+    return typeof selector === 'function' ? selector(state) : state;
+  },
 }));
 
 // Also mock via barrel store path (LeaderboardRow imports from '../../store')
 vi.mock('../../store', () => ({
-  useWalletStore: () => mockUseWalletStore(),
+  useWalletStore: (selector?: (s: unknown) => unknown) => {
+    const state = mockUseWalletStore();
+    return typeof selector === 'function' ? selector(state) : state;
+  },
 }));
 
 const mockIsFavorite = vi.fn().mockReturnValue(false);
