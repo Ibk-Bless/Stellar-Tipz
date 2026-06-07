@@ -31,7 +31,7 @@ Tipz delivers:
 - 🌍 **Global by default** - no geographic restrictions
 - 🏆 **Transparent credit scores** based on X (Twitter) metrics
 - 🎨 **Beautiful brutalist UI** - fast, accessible, memorable
-- � **Simple URLs** - `tipz.app/@username` for easy sharing
+- 🔗 **Simple URLs** - `tipz.app/@username` for easy sharing
 - 🔒 **Fully on-chain** - complete transparency and security
 
 ---
@@ -253,7 +253,7 @@ calculate_score()   // Compute credit score
 
 ---
 
-## �️ Tech Stack
+## 🛠️ Tech Stack
 
 ### Smart Contracts
 - **Soroban** (Rust) - Stellar's smart contract platform
@@ -355,7 +355,7 @@ soroban contract deploy \
   --network testnet
 ```
 
-## � Competitive Advantage
+## 🏆 Competitive Advantage
 
 ### vs. Traditional Platforms
 | Metric | Traditional | Stellar Tipz |
@@ -423,7 +423,7 @@ MIT License - Free to use, modify, and distribute with attribution.
 - 🌐 **Website**: tipz.app (launching soon)
 - 🐙 **GitHub**: github.com/yourusername/stellar-tipz
 - 🐦 **Twitter**: [@TipzApp](https://twitter.com/TipzApp)
-- � **Email**: hello@tipz.app
+- 📧 **Email**: hello@tipz.app
 
 **Built on**: [Stellar](https://stellar.org) | [Soroban](https://soroban.stellar.org) | [Scaffold Stellar](https://github.com/stellar/scaffold-soroban)
 
@@ -455,14 +455,14 @@ Built with ❤️ for the Scaffold Stellar Hackathon
 **Status**: 🚧 In Active Development  
 **Target Launch**: Q4 2025 (Testnet) | Q1 2026 (Mainnet)
 
-[Documentation](./BUILD_GUIDE.md) • [Twitter](https://twitter.com/TipzApp) • [GitHub](https://github.com/yourusername/stellar-tipz)
+[Documentation](./docs/SETUP.md) • [Twitter](https://twitter.com/TipzApp) • [GitHub](https://github.com/yourusername/stellar-tipz)
 
 ---
 
 **Hackathon Submission**: Scaffold Stellar Hackathon 2025  
 **Project Started**: November 10, 2025
 
-⚡ **Powered by Stellar** | � **Built with Soroban** | 🛠️ **Made with Scaffold Stellar**
+⚡ **Powered by Stellar** | 🪐 **Built with Soroban** | 🛠️ **Made with Scaffold Stellar**
 
 </div>
 

@@ -1,7 +1,7 @@
 {
   "name": "stellar-tipz",
   "version": "1.0.0",
-  "description": "> **Empowering creators through decentralized, instant, and fair tipping on Stellar Blockchain**",
+  "description": "Empowering creators through decentralized, instant, and fair tipping on the Stellar blockchain.",
   "main": "index.js",
   "directories": {
     "doc": "docs"
@@ -27,7 +27,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/Akanimoh12/Stellar-Tipz/issues"
