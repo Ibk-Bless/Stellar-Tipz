@@ -1,0 +1,43 @@
+// Stellar Tipz — Prisma schema
+//
+// This is the STARTER schema. Most models are added/extended by individual issues
+// (see the "data model" issues). Run `npm run prisma:migrate` after changing this file.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A creator/user identified by their Stellar wallet address.
+/// Extended by profile, credit, tips and other modules in later issues.
+model User {
+  id            String   @id @default(cuid())
+  stellarAddress String  @unique
+  username      String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+/// On-chain tip mirrored off-chain by the indexer.
+/// Fields and relations are expanded in the tips/indexer issues.
+model Tip {
+  id           String   @id @default(cuid())
+  txHash       String   @unique
+  ledger       Int
+  fromAddress  String
+  toAddress    String
+  amountStroops BigInt
+  message      String?
+  createdAt    DateTime @default(now())
+}
+
+/// Tracks indexer progress so it can resume after a restart.
+model IndexerCursor {
+  id          String   @id @default("default")
+  lastLedger  Int
+  updatedAt   DateTime @updatedAt
+}
