@@ -47,11 +47,46 @@ model Tip {
   amountStroops BigInt
   message      String?
   createdAt    DateTime @default(now())
+  refund       Refund?
 }
 
-/// Tracks indexer progress so it can resume after a restart.
+/// Tracks indexer progress per event topic so it can resume after a restart.
 model IndexerCursor {
-  id          String   @id @default("default")
+  topic       String   @id
   lastLedger  Int
   updatedAt   DateTime @updatedAt
+}
+
+/// Refund requests tied to a specific tip.
+model Refund {
+  id        String   @id @default(cuid())
+  tipId     String   @unique
+  tip       Tip      @relation(fields: [tipId], references: [id])
+  amount    BigInt
+  reason    String
+  status    String   @default("pending")
+  txHash    String?
+  createdAt DateTime @default(now())
+}
+
+/// In-app notification for a user.
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+}
+
+/// Cached X (Twitter) account metrics.
+model XAccount {
+  id         String   @id @default(cuid())
+  handle     String   @unique
+  followers  Int      @default(0)
+  engagement Float?
+  fetchedAt  DateTime @default(now())
 }
