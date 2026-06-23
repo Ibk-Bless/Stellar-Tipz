@@ -58,11 +58,12 @@ model Tip {
   amountStroops BigInt
   message      String?
   createdAt    DateTime @default(now())
+  refund       Refund?
 }
 
-/// Tracks indexer progress so it can resume after a restart.
+/// Tracks indexer progress per event topic so it can resume after a restart.
 model IndexerCursor {
-  id          String   @id @default("default")
+  topic       String   @id
   lastLedger  Int
   updatedAt   DateTime @updatedAt
 }
