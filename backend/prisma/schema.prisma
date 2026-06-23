@@ -20,59 +20,20 @@ model User {
   username       String?  @unique
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-
-  profile              Profile?
-  leaderboardSnapshots LeaderboardSnapshot[]
-  streak               Streak?
-  notifications        Notification[]
-  webhookSubscriptions WebhookSubscription[]
+  apiKeys        ApiKey[]
 }
 
-/// Creator's public-facing profile page.
-/// Display content lives here; on-chain stats (credit_score, tips_received, etc.)
-/// belong on a separate stats/metrics model added in a later issue.
-model Profile {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id])
-  displayName  String?
-  avatarUrl    String?
-  bio          String?
-  website      String?
-  xHandle      String?
-  bannerUrl    String?
-  githubHandle String?
-  themeKey     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-/// API key for service/admin access. Full fields (hashed key, scopes, createdBy) land in #818.
+/// API key for service/admin access and webhook integrations.
 model ApiKey {
-  id                   String                @id @default(cuid())
-  webhookSubscriptions WebhookSubscription[]
-}
+  id          String   @id @default(cuid())
+  hashedKey   String   @unique
+  scopes      String[]
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-/// Outbound webhook subscription for delivering platform events to external URLs.
-model WebhookSubscription {
-  id        String   @id @default(cuid())
-  url       String
-  events    String[]
-  secret    String
-  active    Boolean  @default(true)
-
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  apiKeyId  String?
-  apiKey    ApiKey?  @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@index([apiKeyId])
-  @@index([active])
+  @@index([createdById])
 }
 
 /// On-chain tip mirrored off-chain by the indexer.
