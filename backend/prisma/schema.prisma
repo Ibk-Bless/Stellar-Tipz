@@ -24,6 +24,7 @@ model User {
   profile              Profile?
   leaderboardSnapshots LeaderboardSnapshot[]
   streak               Streak?
+  refreshTokens        RefreshToken[]
 }
 
 /// Creator's public-facing profile page.
@@ -58,7 +59,6 @@ model Tip {
   amountStroops BigInt
   message      String?
   createdAt    DateTime @default(now())
-  refund       Refund?
 }
 
 /// Tracks indexer progress per event topic so it can resume after a restart.
@@ -96,4 +96,35 @@ model Streak {
   lastTipDate   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+/// Authentication challenge for Stellar wallet signature verification.
+/// Used in the challenge-response auth flow.
+model AuthChallenge {
+  id             String   @id @default(cuid())
+  stellarAddress String
+  challenge      String   @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([stellarAddress])
+  @@index([challenge])
+  @@index([expiresAt])
+}
+
+/// Refresh token for JWT token rotation.
+/// Allows users to obtain new access tokens without re-authenticating.
+model RefreshToken {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  token          String   @unique
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
 }
